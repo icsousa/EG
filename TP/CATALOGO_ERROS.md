@@ -1,6 +1,6 @@
 # Sentinela: modelo de execução e catálogo de erros semânticos
 
-Versão 1.1 · Implementado em `verificador.py` · Testado em `test_semantica.py` (cada código tem pelo menos um teste)
+Versão 1.1 · Implementado em `verificador.py` · Testado em `test_semantica.py` (cada código tem pelo menos um teste).
 
 ---
 
