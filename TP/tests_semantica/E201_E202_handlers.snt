@@ -1,0 +1,10 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s { log("1"); }
+  on port_scan as t { log("2"); }                  # expect: E202
+  on ddos as d { log("3"); }                       # expect: E201
+}

@@ -1,0 +1,17 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  var a: ip = 300.1.1.1;                                   # expect: E701
+  var r: cidr = 10.0.0.0/40;                               # expect: E702
+  on port_scan as s {
+    if (s.src_ip == a or s.src_ip in r) {
+      block_ip(s.src_ip, 0h);                              # expect: E703
+    }
+  }
+  every 0m {                                               # expect: E703
+    log("x");
+  }
+}

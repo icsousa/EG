@@ -1,0 +1,16 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  var n: int = 1 + 2;
+  var t: duration = 1h + 30m;
+  var msg: string = "porta " + 22;                 # expect: E302
+  var x: int = 5 + true;                           # expect: E302
+  var y: string = "a" - "b";                       # expect: E303
+  var z: int = 10.0.0.1 - 1;                       # expect: E303
+  on port_scan as s {
+    log(str(n) + str(t) + msg + str(x) + y + str(z) + str(s.src_ip));
+  }
+}

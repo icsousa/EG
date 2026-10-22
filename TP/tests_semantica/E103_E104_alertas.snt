@@ -1,0 +1,12 @@
+alert a1 {
+  x: int;
+  x: ip;                                           # expect: E104
+}
+alert a1 {                                         # expect: E103
+  y: int;
+}
+playbook p {
+  on a1 as e {
+    log(str(e.x));
+  }
+}

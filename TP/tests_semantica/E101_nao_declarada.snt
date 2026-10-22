@@ -1,0 +1,14 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s {
+    log(str(total));                               # expect: E101
+    for porta in [22, 80] {
+      log(str(porta));
+    }
+    log(str(porta));                               # expect: E101
+  }
+}

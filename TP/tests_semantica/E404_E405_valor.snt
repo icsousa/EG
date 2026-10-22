@@ -1,0 +1,12 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s {
+    count(s.src_ip, 10m);                                  # expect: E404
+    var r: int = log("x");                                 # expect: E405
+    log(str(r));
+  }
+}

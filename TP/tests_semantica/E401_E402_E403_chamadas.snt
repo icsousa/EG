@@ -1,0 +1,15 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s {
+    if (s.dest_port == 22) {
+      ban_ip(s.src_ip);                                    # expect: E401
+      block_ip(s.src_ip);                                  # expect: E402
+      block_ip(s.dest_port, 1h);                           # expect: E403
+      rate_limit(s.src_ip, "100");                         # expect: E403
+    }
+  }
+}

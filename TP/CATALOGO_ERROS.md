@@ -1,6 +1,6 @@
 # Sentinela: modelo de execução e catálogo de erros semânticos
 
-Versão 1.1 · Implementado em `verificador.py` · Testado em `test_semantica.py` (cada código tem pelo menos um teste)
+Versão 1.1 · Verificador completo em `verificador.py` (todos os códigos) · Gramática de atributos formal em `sentinela_ag.py` (LarkAG, 25 erros) · Testes em `test_semantica.py` e `test_ag.py`
 
 ---
 
@@ -158,7 +158,14 @@ O lexer aceita qualquer `n.n.n.n`; o significado é verificado aqui.
 
 ---
 
-## 6. O que **não** se consegue apanhar antes da execução
+## 6. Cobertura da gramática de atributos em LarkAG
+
+`sentinela_ag.py` especifica em LarkAG (SA/IA, ER, CC) os erros E101–E104, E201, E203, E204, E301–E310,
+E401–E403, E405, E501, E502, E601 e E602. Ficam só no verificador Python: E105, E202, E404, E603,
+os literais de rede (E701–E703) e os avisos (W01–W05). As regras são as mesmas; a diferença é que o
+LarkAG pára no primeiro erro, enquanto o verificador reporta todos.
+
+## 7. O que **não** se consegue apanhar antes da execução
 
 É importante dizer isto no relatório: são limites de qualquer análise estática.
 
@@ -171,10 +178,11 @@ O lexer aceita qualquer `n.n.n.n`; o significado é verificado aqui.
 
 ---
 
-## 7. Como correr
+## 8. Como correr
 
 ```bash
 pip install lark pytest
 python verificador.py exemplos/*.snt erros/*.snt     # ver os diagnósticos
-pytest -v                                            # 38 testes: sintaxe + semântica
+python sentinela_ag.py exemplos/*.snt                # gramática de atributos (LarkAG)
+pytest -v                                            # 68 testes: sintaxe + semântica + GA
 ```

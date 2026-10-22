@@ -1,15 +1,14 @@
+// ===== Sentinela v1.1 (núcleo reduzido + execução contínua) =====
 
-start: dec*
-
-dec: alert_decl
-   | playbook
+start: alert_decl* playbook
 
 // ---------- Declarações ----------
 alert_decl: "alert" NAME "{" field* "}"
 field: NAME ":" type ";"
 
 playbook: "playbook" NAME "{" var_decl* handler+ "}"
-handler: "on" NAME "as" NAME block
+?handler: "on" NAME "as" NAME block     -> on_handler
+        | "every" DURATION block          -> every_handler
 
 ?type: basic_type
      | "list" "<" type ">"           -> list_type

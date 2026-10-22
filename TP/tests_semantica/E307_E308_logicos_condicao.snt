@@ -1,0 +1,12 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s {
+    if (s.dest_port and true) { log("a"); }                # expect: E307
+    if (not s.src_ip) { log("b"); }                        # expect: E307
+    if (s.dest_port) { log("c"); }                         # expect: E308
+  }
+}

@@ -1,0 +1,15 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  var rede: cidr = 10.0.0.0/8;
+  var portas: list<int> = [22, 80];
+  on port_scan as s {
+    if (s.src_ip in rede) { log("ok"); }
+    if (s.dest_port in portas) { log("ok"); }
+    if (s.src_ip in portas) { log("x"); }                  # expect: E306
+    if (s.dest_port in rede) { log("x"); }                 # expect: E306
+  }
+}

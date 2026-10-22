@@ -1,0 +1,12 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  var limite: int = 5;
+  on port_scan as s {
+    log(str(s.dest_prt));                          # expect: E204
+    log(str(limite.valor));                        # expect: E203
+  }
+}

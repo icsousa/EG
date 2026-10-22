@@ -1,0 +1,11 @@
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook p {
+  on port_scan as s {
+    secret k: string = "abc";                      # expect: E105
+    notify("scan", k);
+  }
+}
