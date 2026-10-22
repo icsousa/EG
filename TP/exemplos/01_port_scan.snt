@@ -1,0 +1,18 @@
+# FÁCIL 1 — Port scan (nmap -sS)
+alert port_scan {
+  src_ip: ip;
+  dest_port: int;
+}
+
+playbook scan_response {
+  var portas_sensiveis: list<int> = [22, 3389, 5432];
+
+  on port_scan as s {
+    if (s.dest_port in portas_sensiveis) {
+      block_ip(s.src_ip, 1h);
+      log("Scan bloqueado: " + str(s.src_ip));
+    } else {
+      log("Scan ignorado na porta " + str(s.dest_port));
+    }
+  }
+}

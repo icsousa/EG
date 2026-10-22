@@ -1,0 +1,18 @@
+# FÁCIL 2 — Brute force SSH (hydra)
+alert ssh_failed_login {
+  src_ip: ip;
+  user: string;
+}
+
+playbook brute_force_ssh {
+  var limite: int = 5;
+  var rede_interna: cidr = 10.0.0.0/8;
+
+  on ssh_failed_login as a {
+    var tentativas: int = count(a.src_ip, 10m);
+    if (tentativas > limite and not (a.src_ip in rede_interna)) {
+      block_ip(a.src_ip, 24h);
+      notify("Brute force contra " + a.user + " vindo de " + str(a.src_ip));
+    }
+  }
+}

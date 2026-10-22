@@ -1,0 +1,30 @@
+# DIFÍCIL — ARP spoofing / MITM na LAN (arpspoof)
+alert arp_spoof {
+  attacker_ip: ip;
+  claimed_ip: ip;
+  gateway_ip: ip;
+}
+
+playbook lan_integrity {
+  secret webhook_token: string = "xoxb-123";
+  var lan: cidr = 10.0.2.0/24;
+  var servidores: list<ip> = [10.0.1.10, 10.0.1.20];
+  var incidentes: int = 0;
+
+  on arp_spoof as x {
+    var critico: bool = x.claimed_ip == x.gateway_ip;
+    for srv in servidores {
+      if (x.claimed_ip == srv) {
+        critico = true;
+      }
+    }
+    if (critico and x.attacker_ip in lan) {
+      quarantine(x.attacker_ip);
+      block_ip(x.attacker_ip, 1h);
+      incidentes = incidentes + 1;
+      notify("ARP spoofing por " + str(x.attacker_ip), webhook_token);
+    } else {
+      log("ARP suspeito, sem impacto: " + str(x.attacker_ip));
+    }
+  }
+}

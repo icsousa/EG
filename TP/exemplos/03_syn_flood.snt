@@ -1,0 +1,24 @@
+# INTERMÉDIO — SYN flood (hping3 --flood)
+alert syn_flood {
+  dest_ip: ip;
+  sources: list<ip>;
+  pps: int;
+}
+
+playbook dos_mitigation {
+  var limiar: int = 5000;
+  var whitelist: list<ip> = [10.0.9.10, 10.0.9.11];
+
+  on syn_flood as f {
+    var mitigados: int = 0;
+    if (f.pps > limiar) {
+      for src in f.sources {
+        if (not (src in whitelist)) {
+          rate_limit(src, 100);
+          mitigados = mitigados + 1;
+        }
+      }
+      log("SYN flood: " + str(mitigados) + " origens limitadas");
+    }
+  }
+}
