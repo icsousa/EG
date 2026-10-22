@@ -36,7 +36,7 @@ pytest -v                                               # 68 testes
 | | `sentinela_ag.py` (LarkAG) | `verificador.py` (Python) |
 |---|---|---|
 | Papel | **especificação formal** da GA, como nas aulas (SA/IA, ER, CC) | ferramenta para o utilizador |
-| Erros | pára no **primeiro** erro (`ContextConditionError`) | reporta **todos** os erros e avisos, com linha |
+| Erros | para no **primeiro** erro (`ContextConditionError`) | reporta **todos** os erros e avisos, com linha |
 | Cobertura | 25 erros (scopes, alertas, tipos, chamadas, mutabilidade, segredos) | 32 erros + 5 avisos |
 
 O guião não exige que a GA cubra todas as propriedades. A versão LarkAG mostra os atributos
