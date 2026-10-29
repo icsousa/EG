@@ -5,9 +5,9 @@ Mestrado em Engenharia Informática, Universidade do Minho
 
 | Grupo | |
 |---|---|
-| Miguel Páscoa | _(número)_ |
-| Ricardo Eusébio | _(número)_ |
-| _(nome)_ | _(número)_ |
+| Ivo Sousa | PG63976|
+| Miguel Páscoa | PG64007|
+| Ricardo Eusébio | PG64022 |
 
 Este README é o relatório deste checkpoint e segue as quatro tarefas do guião. Os detalhes completos estão nos documentos indicados:
 
