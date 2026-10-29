@@ -31,44 +31,64 @@ Atributos:
 """
 
 GRAMMAR = r"""
-SA(start)        { alerttab : dict }
-SA(alerts)       { table : dict }
-SA(alert)        { name : str, fieldtab : dict }
-SA(fields)       { table : dict }
-SA(field)        { name : str, type : str }
-SA(datatype)     { type : str }
-IA(playbook)     { alerttab : dict }
-IA(statedecls)   { env : dict, alerttab : dict }
-SA(statedecls)   { envout : dict }
-IA(handlers)     { env : dict, alerttab : dict }
-IA(handler)      { env : dict, alerttab : dict }
-IA(block)        { env : dict, scope : set, alerttab : dict }
-IA(stmts)        { env : dict, scope : set, alerttab : dict }
-SA(stmts)        { envout : dict, scopeout : set }
-IA(stmt)         { env : dict, scope : set, alerttab : dict }
-SA(stmt)         { envout : dict, scopeout : set }
-IA(vardecl)      { env : dict, scope : set, alerttab : dict }
-SA(vardecl)      { envout : dict, scopeout : set }
-SA(callee)       { name : str, signature : tuple }
-SA(ident)        { name : str }
-IA(args)         { env : dict, alerttab : dict }
-SA(args)         { types : list, secrets : list }
-IA(expr)         { env : dict, alerttab : dict }
-SA(expr)         { type : str, secret : bool }
-IA(andexpr)      { env : dict, alerttab : dict }
-SA(andexpr)      { type : str, secret : bool }
-IA(notexpr)      { env : dict, alerttab : dict }
-SA(notexpr)      { type : str, secret : bool }
-IA(relexpr)      { env : dict, alerttab : dict }
-SA(relexpr)      { type : str, secret : bool }
-IA(addexpr)      { env : dict, alerttab : dict }
-SA(addexpr)      { type : str, secret : bool }
-IA(accessexpr)   { env : dict, alerttab : dict }
-SA(accessexpr)   { type : str, secret : bool }
-IA(primary)      { env : dict, alerttab : dict }
-SA(primary)      { type : str, secret : bool }
-IA(items)        { env : dict, alerttab : dict }
-SA(items)        { types : list, secret : bool }
+// =====================================================================
+// Declaração dos atributos (ver GRAMATICA.md, secção 3.2)
+//   IA = herdado (vem do pai ou dos irmãos à esquerda)
+//   SA = sintetizado (calculado a partir dos filhos)
+//   Tipo    = str: "int" "bool" "string" "ip" "cidr" "duration" "list<T>" "A:alerta"
+//   Env     = dict[str, tuple[str, str]]   nome -> (tipo, espécie);
+//             espécie em {"var", "secret", "loop", "alias"}
+//   Scope   = set[str]                     nomes declarados no scope atual
+//   AlertTab= dict[str, dict[str, str]]    alerta -> {campo: tipo}
+// =====================================================================
+
+// ---- programa e alertas: constroem a tabela dos alertas
+SA(start)      { alerttab : dict[str, dict[str, str]] }
+SA(alerts)     { table : dict[str, dict[str, str]] }
+SA(alert)      { name : str, fieldtab : dict[str, str] }
+SA(fields)     { table : dict[str, str] }
+SA(field)      { name : str, type : str }
+SA(datatype)   { type : str }
+
+// ---- playbook: a tabela dos alertas desce; o estado persistente forma o env inicial
+IA(playbook)   { alerttab : dict[str, dict[str, str]] }
+IA(statedecls) { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(statedecls) { envout : dict[str, tuple[str, str]] }
+IA(handlers)   { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+IA(handler)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(ident)      { name : str }
+
+// ---- instruções: env e scope descem e crescem da esquerda para a direita
+IA(block)      { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]] }
+IA(stmts)      { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]] }
+SA(stmts)      { envout : dict[str, tuple[str, str]], scopeout : set[str] }
+IA(stmt)       { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]] }
+SA(stmt)       { envout : dict[str, tuple[str, str]], scopeout : set[str] }
+IA(vardecl)    { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]] }
+SA(vardecl)    { envout : dict[str, tuple[str, str]], scopeout : set[str] }
+
+// ---- chamadas: a assinatura vem da biblioteca; os argumentos sintetizam listas
+SA(callee)     { name : str, signature : tuple }
+IA(args)       { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(args)       { types : list[str], secrets : list[bool] }
+IA(items)      { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(items)      { types : list[str], secret : bool }
+
+// ---- expressões: herdam o contexto, sintetizam o tipo e se dependem de um segredo
+IA(expr)       { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(expr)       { type : str, secret : bool }
+IA(andexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(andexpr)    { type : str, secret : bool }
+IA(notexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(notexpr)    { type : str, secret : bool }
+IA(relexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(relexpr)    { type : str, secret : bool }
+IA(addexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(addexpr)    { type : str, secret : bool }
+IA(accessexpr) { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(accessexpr) { type : str, secret : bool }
+IA(primary)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(primary)    { type : str, secret : bool }
 
 // ===================== Programa e alertas =====================
 start : alerts playbook
@@ -214,7 +234,7 @@ ER {
 }
 CC {
   str(NAME) not in vardecl.scope -> "E102: variavel ja declarada neste scope";
-  expr.type == datatype.type -> "E301: o valor nao tem o datatype declarado";
+  expr.type == datatype.type -> "E301: o valor nao tem o tipo declarado";
   not expr.secret -> "E602: um segredo nao pode ser guardado numa variavel normal";
 }
 | "secret" NAME ":" datatype "=" expr ";"
@@ -226,7 +246,7 @@ ER {
 }
 CC {
   str(NAME) not in vardecl.scope -> "E102: variavel ja declarada neste scope";
-  expr.type == datatype.type -> "E301: o valor nao tem o datatype declarado";
+  expr.type == datatype.type -> "E301: o valor nao tem o tipo declarado";
 }
 
 stmt : vardecl
@@ -248,7 +268,7 @@ CC {
   str(NAME) in stmt.env -> "E101: variavel nao declarada";
   stmt.env[str(NAME)][1] != "secret" -> "E501: nao e possivel alterar um segredo";
   stmt.env[str(NAME)][1] not in ("loop", "alias") -> "E502: variavel so de leitura";
-  stmt.env[str(NAME)][0] == expr.type -> "E301: o valor nao tem o datatype da variavel";
+  stmt.env[str(NAME)][0] == expr.type -> "E301: o valor nao tem o tipo da variavel";
   not expr.secret -> "E602: um segredo nao pode ser guardado numa variavel normal";
 }
 | "if" "(" expr ")" block
@@ -303,7 +323,7 @@ ER {
 CC {
   callee.signature is not None -> "E401: acao desconhecida";
   callee.signature[1] <= len(args.types) <= len(callee.signature[0]) -> "E402: numero de argumentos errado";
-  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com datatype errado";
+  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com tipo errado";
   not any(s for i, s in enumerate(args.secrets) if not (callee.name == "notify" and i == 1)) -> "E601: um segredo so pode ir para a credencial do notify";
 }
 | callee "(" ")" ";"
@@ -350,7 +370,7 @@ ER {
 }
 
 // ===================== Expressões =====================
-// Cada nível: herda env e alerts; sintetiza ty (datatype) e sec (depende de um segredo?)
+// Cada nível: herda env e alerttab; sintetiza type (tipo) e secret (depende de um segredo?)
 
 expr : expr "or" andexpr
 ER {
@@ -513,7 +533,7 @@ CC {
   callee.signature is not None -> "E401: funcao desconhecida";
   callee.signature[2] is not None -> "E405: esta acao nao devolve valor";
   callee.signature[1] <= len(args.types) <= len(callee.signature[0]) -> "E402: numero de argumentos errado";
-  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com datatype errado";
+  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com tipo errado";
 }
 | callee "(" ")"
 ER {
@@ -548,7 +568,7 @@ ER {
   primary.secret = False;
 }
 CC {
-  False -> "E310: a lista vazia nao tem datatype";
+  False -> "E310: a lista vazia nao tem tipo";
 }
 | INT      ER { primary.type = "int";      primary.secret = False; }
 | STRING   ER { primary.type = "string";   primary.secret = False; }

@@ -124,52 +124,116 @@ Os nomes são **os mesmos** nos três ficheiros (`sentinela.lark`, este document
 
 ---
 
-## 3. Gramática de atributos: atributos
+## 3. Gramática de atributos: declaração dos atributos
 
-### 3.1 Domínios
+Esta secção é a **chave de leitura da semântica**. Para cada símbolo declara-se que atributos tem, se são herdados (↓, vêm do contexto, do pai ou dos irmãos à esquerda) ou sintetizados (↑, calculados a partir dos filhos) e em que domínio tomam valores. Só com estas declarações já se percebe **que regras a linguagem tem** (secção 3.3); a secção 4 diz **como** cada atributo é calculado.
 
-- **Tipos:** `int`, `bool`, `string`, `ip`, `cidr`, `duration`, `list<T>`, `A:n` (alias de um alerta `n`) e `⊥` (desconhecido; resulta de um erro já reportado e é compatível com tudo, para não gerar erros em cascata).
-- **Espécies de símbolo:** `var`, `secret`, `loop` (variável do `for`), `alias` (nome dado ao alerta em `on X as a`).
-- **Ambiente:** `Env = Nome → (Tipo × Espécie)`. A notação `e ⊕ {n ↦ v}` acrescenta ou substitui `n`.
+### 3.1 Domínios semânticos
 
-### 3.2 Atributos por símbolo
-
-| Símbolo | Herdados (↓) | Sintetizados (↑) |
+| Domínio | Definição | Leitura |
 |---|---|---|
-| `start` | | `warnings` |
-| `alerts` | | `table` : Nome → (Nome → Tipo) |
-| `alert` | | `name`, `fieldtab` |
-| `fields` | | `table` : Nome → Tipo |
-| `field` | | `name`, `type` |
-| `datatype` | | `type` |
-| `playbook` | `alerttab` | `handled`, `warnings` |
-| `statedecls` | `env`, `alerttab` | `envout`, `declared`, `used`, `warnings` |
-| `handlers` | `env`, `alerttab` | `handled`, `used`, `warnings` |
-| `handler` | `env`, `alerttab` | `target`, `used`, `warnings` |
-| `ident` | | `name` |
-| `block` | `env`, `scope`, `alerttab`, `guarded` | `used`, `warnings` |
-| `stmts` | `env`, `scope`, `alerttab`, `guarded` | `envout`, `scopeout`, `declared`, `used`, `warnings` |
-| `stmt` | `env`, `scope`, `alerttab`, `guarded` | `envout`, `scopeout`, `declared`, `used`, `warnings` |
-| `vardecl` | `env`, `scope`, `alerttab`, `level` | `envout`, `scopeout`, `declared`, `used`, `warnings` |
-| `callee` | | `name`, `signature` |
-| `args`, `items` | `env`, `alerttab` | `types` (lista de tipos), `secrets` (lista de booleanos), `used` |
-| `expr`, `andexpr`, `notexpr`, `relexpr`, `addexpr`, `accessexpr`, `primary` | `env`, `alerttab` | `type`, `secret`, `const`, `used` |
+| `Nome` | identificadores (`NAME`) | |
+| `Tipo` | `{int, bool, string, ip, cidr, duration}` ∪ `{list<T> ∣ T ∈ Tipo}` ∪ `{A:n ∣ n é um alerta}` ∪ `{⊥}` | `A:n` é o tipo do alias de um alerta `n`; `⊥` é "desconhecido" (resulta de um erro já reportado e é compatível com tudo, para não gerar erros em cascata) |
+| `Espécie` | `{var, secret, loop, alias}` | o que um nome é: variável, segredo, variável do `for` ou nome dado ao alerta |
+| `Env` | `Nome ⇀ Tipo × Espécie` | ambiente: os nomes visíveis, com o tipo e a espécie de cada um |
+| `Scope` | `℘(Nome)` | conjunto de nomes declarados num scope |
+| `FieldTab` | `Nome ⇀ Tipo` | campos de um alerta e os seus tipos |
+| `AlertTab` | `Nome ⇀ FieldTab` | todos os alertas declarados |
+| `Sig` | `(params : [℘(Tipo)], min : ℕ, returns : Tipo ∪ {⊥}, destructive : 𝔹)` | assinatura de uma ação ou função da biblioteca (tabela na secção 3.4) |
+| `Level` | `{playbook, block}` | nível onde está uma declaração |
+| `Warning` | `(código, Nome)` | um aviso, por exemplo `(W02, contador)` |
 
-| Atributo | Significado | Usado em |
-|---|---|---|
-| `alerttab` | tabela dos alertas declarados | E201, E203, E204, W04 |
-| `env` / `envout` | variáveis visíveis antes / depois de um símbolo | E101, E301, E5xx, E6xx |
-| `scope` / `scopeout` | nomes declarados no **scope atual** | E102, W03 |
-| `level` | `playbook` ou `block`: onde está a declaração | E105 |
-| `guarded` | a instrução está dentro de um `if`/`else`? | W01 |
-| `type` | tipo de uma expressão | família 3, E4xx |
-| `secret` | a expressão depende de um segredo? | família 6 |
-| `const` | valor de um literal `true`/`false`, ou `⊥` | W05 |
-| `handled`, `target` | alertas com handler / alerta tratado por um handler | E202, W04 |
-| `declared`, `used` | nomes declarados num scope / nomes lidos | W02 |
-| `warnings` | lista de avisos (os erros são condições de contexto) | W01 a W05 |
+A notação `e ⊕ {n ↦ v}` acrescenta (ou substitui) `n` no ambiente `e`.
 
-### 3.3 Funções auxiliares
+### 3.2 Declaração dos atributos
+
+```
+A(start)      = { (warnings,  ↑, [Warning]) }
+
+A(alerts)     = { (table,     ↑, AlertTab) }
+A(alert)      = { (name,      ↑, Nome),     (fieldtab, ↑, FieldTab) }
+A(fields)     = { (table,     ↑, FieldTab) }
+A(field)      = { (name,      ↑, Nome),     (type,     ↑, Tipo) }
+A(datatype)   = { (type,      ↑, Tipo) }
+
+A(playbook)   = { (alerttab,  ↓, AlertTab),
+                  (handled,   ↑, ℘(Nome)),  (warnings, ↑, [Warning]) }
+A(statedecls) = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
+                  (envout,    ↑, Env),      (declared, ↑, ℘(Nome)),
+                  (used,      ↑, ℘(Nome)),  (warnings, ↑, [Warning]) }
+A(handlers)   = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
+                  (handled,   ↑, ℘(Nome)),  (used,     ↑, ℘(Nome)),
+                  (warnings,  ↑, [Warning]) }
+A(handler)    = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
+                  (target,    ↑, Nome ∪ {⊥}), (used,   ↑, ℘(Nome)),
+                  (warnings,  ↑, [Warning]) }
+A(ident)      = { (name,      ↑, Nome) }
+
+A(block)      = { (env,       ↓, Env),      (scope,    ↓, Scope),
+                  (alerttab,  ↓, AlertTab), (guarded,  ↓, 𝔹),
+                  (used,      ↑, ℘(Nome)),  (warnings, ↑, [Warning]) }
+A(stmts)      = A(stmt) =
+                { (env,       ↓, Env),      (scope,    ↓, Scope),
+                  (alerttab,  ↓, AlertTab), (guarded,  ↓, 𝔹),
+                  (envout,    ↑, Env),      (scopeout, ↑, Scope),
+                  (declared,  ↑, ℘(Nome)),  (used,     ↑, ℘(Nome)),
+                  (warnings,  ↑, [Warning]) }
+A(vardecl)    = { (env,       ↓, Env),      (scope,    ↓, Scope),
+                  (alerttab,  ↓, AlertTab), (level,    ↓, Level),
+                  (envout,    ↑, Env),      (scopeout, ↑, Scope),
+                  (declared,  ↑, ℘(Nome)),  (used,     ↑, ℘(Nome)),
+                  (warnings,  ↑, [Warning]) }
+
+A(callee)     = { (name,      ↑, Nome),     (signature, ↑, Sig ∪ {⊥}) }
+A(args)       = A(items) =
+                { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
+                  (types,     ↑, [Tipo]),   (secrets,  ↑, [𝔹]),
+                  (used,      ↑, ℘(Nome)) }
+
+A(X)          = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
+                  (type,      ↑, Tipo),     (secret,   ↑, 𝔹),
+                  (const,     ↑, 𝔹 ∪ {⊥}),  (used,     ↑, ℘(Nome)) }
+                para X ∈ {expr, andexpr, notexpr, relexpr, addexpr, accessexpr, primary}
+```
+
+Resumo por atributo:
+
+| Atributo | ↓/↑ | Domínio | Significado | Erros e avisos |
+|---|---|---|---|---|
+| `alerttab` | ↓ | `AlertTab` | alertas declarados e os seus campos | E201, E203, E204, W04 |
+| `env` / `envout` | ↓ / ↑ | `Env` | nomes visíveis antes / depois de um símbolo | E101, E301, E501, E502, E601, E602 |
+| `scope` / `scopeout` | ↓ / ↑ | `Scope` | nomes já declarados no scope atual | E102, W03 |
+| `level` | ↓ | `Level` | a declaração está no playbook ou num bloco? | E105 |
+| `guarded` | ↓ | `𝔹` | a instrução está dentro de um `if`/`else`? | W01 |
+| `table`, `fieldtab`, `name` | ↑ | | tabelas e nomes construídos pelas declarações | E103, E104 |
+| `type` | ↑ | `Tipo` | tipo de um valor | E301–E310, E401–E405 |
+| `secret` | ↑ | `𝔹` | o valor depende de um segredo? | E601–E603 |
+| `const` | ↑ | `𝔹 ∪ {⊥}` | valor de uma constante `true`/`false` | W05 |
+| `signature` | ↑ | `Sig` | assinatura da ação chamada | E401–E405, W01 |
+| `types`, `secrets` | ↑ | `[Tipo]`, `[𝔹]` | tipo e segredo de cada argumento | E402, E403, E601 |
+| `handled`, `target` | ↑ | `℘(Nome)` | alertas que já têm handler | E202, W04 |
+| `declared`, `used` | ↑ | `℘(Nome)` | nomes declarados / nomes lidos | W02 |
+| `warnings` | ↑ | `[Warning]` | avisos; os **erros** são condições de contexto | W01–W05 |
+
+### 3.3 O que as declarações dizem sobre a semântica
+
+Sem olhar para nenhuma regra de cálculo, as declarações acima já revelam as regras da linguagem:
+
+| Padrão nas declarações | Regra da linguagem que revela |
+|---|---|
+| `env` é **herdado** em todas as instruções e expressões, e as sequências de instruções e de declarações (`stmts`, `stmt`, `vardecl`, `statedecls`) sintetizam um `envout` que passa à instrução seguinte | **scopes estáticos** e **declarar antes de usar**: o ambiente desce na árvore e cresce da esquerda para a direita, de declaração em declaração |
+| `scope` é **herdado** e `block` recebe o seu próprio `scope` | **não se pode redeclarar no mesmo bloco**, mas um bloco interior pode reutilizar um nome (*shadowing*) |
+| `Env` guarda uma **`Espécie`** além do tipo | um nome não é só um tipo: segredos, variáveis do `for` e aliases de alertas têm **regras próprias** (não se alteram, não se expõem) |
+| `type` é **sintetizado** nas expressões e não há tipo herdado | **tipagem de baixo para cima**: o tipo de uma expressão depende só das suas partes; os tipos das variáveis vêm sempre de uma declaração explícita (`nome: tipo`) |
+| `Tipo` tem `ip`, `cidr`, `duration` e `A:n` | os conceitos de **rede e de alerta são tipos** da linguagem, verificados como `int` ou `bool` |
+| `secret` é **sintetizado** nas expressões | **fluxo de informação**: uma expressão que usa um segredo fica secreta, e o verificador segue-a até onde for usada |
+| `alerttab` é **herdado** desde `start` por toda a árvore | os alertas são **globais**: declaram-se antes do playbook e são visíveis em todo o lado |
+| `level` é **herdado** só em `vardecl` | a **posição** de uma declaração importa: os segredos só podem existir ao nível do playbook |
+| `guarded` é **herdado** nas instruções | o **contexto condicional** importa: uma ação destrutiva fora de um `if` é assinalada |
+| `handled` e `target` são **sintetizados** nos handlers | **no máximo um handler por alerta**, e alertas sem handler são assinalados |
+| `warnings` é um atributo, mas os erros não | há **dois níveis de gravidade**: os erros (condições de contexto) impedem a ativação, os avisos não |
+
+### 3.4 Funções auxiliares
 
 | Função | Definição |
 |---|---|
