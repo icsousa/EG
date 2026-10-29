@@ -1,0 +1,13 @@
+# E307: Usar and, or ou not com valores que não são bool.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port and true) {                  # expect: E307
+      log("x");
+    }
+  }
+}

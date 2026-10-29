@@ -1,0 +1,13 @@
+# E702: Escrever uma rede com prefixo maior que /32.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.src in 10.0.0.0/40) {             # expect: E702
+      log("x");
+    }
+  }
+}

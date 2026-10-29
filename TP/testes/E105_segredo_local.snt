@@ -1,0 +1,12 @@
+# E105: Declarar um segredo fora do estado do playbook.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    secret k: string = "abc";               # expect: E105
+    notify("scan", k);
+  }
+}

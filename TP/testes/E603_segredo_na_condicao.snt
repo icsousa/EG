@@ -1,0 +1,14 @@
+# E603: Usar um segredo numa condição.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  secret token: string = "abc";
+  on scan as s {
+    if (token == "abc") {                   # expect: E603
+      log("x");
+    }
+  }
+}

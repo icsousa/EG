@@ -1,0 +1,13 @@
+# E701: Escrever um IP com um octeto maior que 255.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.src == 300.1.1.1) {               # expect: E701
+      log("x");
+    }
+  }
+}

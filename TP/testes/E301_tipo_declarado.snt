@@ -1,0 +1,12 @@
+# E301: Dar a uma variável um valor de outro tipo.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var rede: ip = 10.0.0.0/8;                # expect: E301
+  on scan as s {
+    log(str(rede));
+  }
+}

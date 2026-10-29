@@ -1,0 +1,12 @@
+# E405: Usar uma ação (sem valor) dentro de uma expressão.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    var r: int = log("x");                  # expect: E405
+    log(str(r));
+  }
+}

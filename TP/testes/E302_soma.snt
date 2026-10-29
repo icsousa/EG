@@ -1,0 +1,11 @@
+# E302: Somar valores de tipos diferentes.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("porta " + s.port);                 # expect: E302
+  }
+}

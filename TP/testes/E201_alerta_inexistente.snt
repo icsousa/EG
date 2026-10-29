@@ -1,0 +1,14 @@
+# E201: Escrever um on para um alerta que não foi declarado.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+  on ddos as d {                            # expect: E201
+    log("y");
+  }
+}

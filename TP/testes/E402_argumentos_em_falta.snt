@@ -1,0 +1,13 @@
+# E402: Chamar uma ação com argumentos a menos.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port > 0) {
+      block_ip(s.src);                      # expect: E402
+    }
+  }
+}

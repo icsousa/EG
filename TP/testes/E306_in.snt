@@ -1,0 +1,13 @@
+# E306: Usar in com tipos que não combinam.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port in 10.0.0.0/8) {             # expect: E306
+      log("x");
+    }
+  }
+}

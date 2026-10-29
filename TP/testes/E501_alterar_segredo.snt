@@ -1,0 +1,13 @@
+# E501: Alterar um segredo.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  secret token: string = "abc";
+  on scan as s {
+    token = "outro";                        # expect: E501
+    notify("x", token);
+  }
+}

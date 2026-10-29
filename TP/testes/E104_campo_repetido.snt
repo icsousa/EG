@@ -1,0 +1,11 @@
+# E104: Repetir um campo dentro de um alerta.
+alert scan {
+  src: ip;
+  src: int;                                 # expect: E104
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+}

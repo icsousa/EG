@@ -1,0 +1,11 @@
+# E402: Chamar log sem argumentos.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log();                                  # expect: E402
+  }
+}

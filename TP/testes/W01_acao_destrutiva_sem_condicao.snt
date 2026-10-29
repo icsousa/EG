@@ -1,0 +1,11 @@
+# W01: Executar uma ação destrutiva fora de um if.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    block_ip(s.src, 1h);                    # expect: W01
+  }
+}

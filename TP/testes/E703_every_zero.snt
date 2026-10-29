@@ -1,0 +1,14 @@
+# E703: Usar every com uma duração igual a zero.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+  every 0m {                                # expect: E703
+    log("y");
+  }
+}

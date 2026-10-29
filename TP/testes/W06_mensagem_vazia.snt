@@ -1,0 +1,11 @@
+# W06: Chamar log ou notify com uma mensagem vazia.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("");                                # expect: W06
+  }
+}

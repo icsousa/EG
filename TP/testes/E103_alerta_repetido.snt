@@ -1,0 +1,14 @@
+# E103: Declarar duas vezes o mesmo alerta.
+alert scan {
+  src: ip;
+  port: int;
+}
+alert scan {                                # expect: E103
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+}

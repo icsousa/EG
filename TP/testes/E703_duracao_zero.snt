@@ -1,0 +1,13 @@
+# E703: Usar uma duração igual a zero.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port > 0) {
+      block_ip(s.src, 0h);                  # expect: E703
+    }
+  }
+}

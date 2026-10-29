@@ -1,0 +1,13 @@
+# E401: Chamar uma ação que não existe.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port > 0) {
+      ban_ip(s.src);                        # expect: E401
+    }
+  }
+}

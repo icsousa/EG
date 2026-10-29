@@ -1,0 +1,11 @@
+# E404: Usar uma função que devolve um valor como instrução.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    count(s.src, 10m);                      # expect: E404
+  }
+}

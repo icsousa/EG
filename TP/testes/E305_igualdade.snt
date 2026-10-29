@@ -1,0 +1,13 @@
+# E305: Comparar com == valores de tipos diferentes.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port == "22") {                   # expect: E305
+      log("x");
+    }
+  }
+}

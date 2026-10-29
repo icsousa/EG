@@ -1,0 +1,13 @@
+# E308: Usar no if uma condição que não é bool.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.port) {                           # expect: E308
+      log("x");
+    }
+  }
+}

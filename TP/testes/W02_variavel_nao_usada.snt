@@ -1,0 +1,12 @@
+# W02: Declarar uma variável que nunca é usada.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    var esquecida: int = 0;                 # expect: W02
+    log("x");
+  }
+}

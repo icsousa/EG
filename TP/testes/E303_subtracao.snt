@@ -1,0 +1,11 @@
+# E303: Subtrair valores que não são int nem duration.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("a" - "b");                         # expect: E303
+  }
+}

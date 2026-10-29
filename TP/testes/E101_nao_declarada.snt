@@ -1,0 +1,11 @@
+# E101: Usar um nome que não foi declarado.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log(str(total));                        # expect: E101
+  }
+}

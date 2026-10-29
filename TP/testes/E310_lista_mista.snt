@@ -1,0 +1,12 @@
+# E310: Misturar tipos numa lista.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var l: list<int> = [1, "2"];              # expect: E310
+  on scan as s {
+    log(str(len(l)));
+  }
+}

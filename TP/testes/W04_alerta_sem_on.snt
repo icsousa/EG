@@ -1,0 +1,14 @@
+# W04: Declarar um alerta que nenhum on trata.
+alert scan {
+  src: ip;
+  port: int;
+}
+alert ddos {                                # expect: W04
+  pps: int;
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+}

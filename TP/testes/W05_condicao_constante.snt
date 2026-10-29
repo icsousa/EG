@@ -1,0 +1,13 @@
+# W05: Escrever um if com uma condição constante.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (true) {                             # expect: W05
+      log("x");
+    }
+  }
+}

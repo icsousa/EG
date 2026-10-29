@@ -1,0 +1,13 @@
+# E102: Declarar duas vezes o mesmo nome no mesmo scope.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var a: int = 1;
+  var a: int = 2;                           # expect: E102
+  on scan as s {
+    log(str(a));
+  }
+}

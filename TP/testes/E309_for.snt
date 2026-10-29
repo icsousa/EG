@@ -1,0 +1,13 @@
+# E309: Percorrer com o for algo que não é uma lista.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    for x in s.port {                       # expect: E309
+      log("x");
+    }
+  }
+}

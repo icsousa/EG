@@ -1,6 +1,6 @@
 # Sentinela: modelo de execução e catálogo de erros semânticos
 
-Versão 1.3 · GA completa em `GRAMATICA.md` · Verificador completo em `verificador.py` (todos os códigos) · Exemplo em LarkAG em `sentinela_ag.py` (25 erros) · Testes em `test_semantica.py` e `test_ag.py`
+Versão 2.0 · Tudo especificado e implementado em `sentinela.ag` (gramática de atributos em LarkAG) · Cada código tem um teste em `testes/`
 
 ---
 
@@ -10,7 +10,7 @@ Um playbook **não é um script que corre uma vez**. É um **serviço contínuo*
 
 | Conceito | Regra |
 |---|---|
-| **Ativação** | antes de ser ativado, o playbook passa pelo verificador. **Com erros (`E…`), não é ativado.** Com avisos (`W…`), é ativado, e os avisos ficam registados. |
+| **Ativação** | antes de ser ativado, o playbook passa pela gramática de atributos (`python sentinela.py`). **Com erros (`E…`), não é ativado.** Com avisos (`W…`), é ativado, e os avisos ficam registados. |
 | **Handler de alerta** `on X as a { … }` | corre **sempre que chega** um alerta do tipo `X` |
 | **Handler periódico** `every 1h { … }` | corre **de X em X tempo**, haja ou não alertas (relatórios, limpeza, verificações) |
 | **Estado persistente** | as variáveis declaradas ao nível do playbook **mantêm o valor entre execuções** (ex.: `incidentes` acumula ao longo do dia) |
@@ -19,7 +19,7 @@ Um playbook **não é um script que corre uma vez**. É um **serviço contínuo*
 
 Exemplo (caso difícil, `exemplos/04_arp_spoofing.snt`): o handler `on arp_spoof` incrementa `incidentes` em cada ataque, e o handler `every 1h` envia um resumo e repõe o contador a zero.
 
-O verificador **não para no primeiro erro**: reporta todos. Quando uma expressão tem um erro, o seu tipo passa a "desconhecido" (⊥), que é compatível com tudo, para evitar erros em cascata.
+Os **erros** são condições de contexto da gramática de atributos: o primeiro que falha **pára a avaliação** (como num compilador) e é reportado com o código, a linha e a mensagem. Os **avisos** são calculados num atributo (`warnings`) e só são mostrados se não houver erros.
 
 ---
 
@@ -140,32 +140,28 @@ O lexer aceita qualquer `n.n.n.n`; o significado é verificado aqui.
 | **W03** | Declaração que esconde uma variável de um scope exterior (*shadowing*). | `var limite` dentro de um `for`, já existindo `limite` no playbook |
 | **W04** | Alerta declarado sem nenhum handler. | `alert sem_handler { … }` sem `on sem_handler` |
 | **W05** | Condição constante. | `if (true) { … }` |
+| **W06** | `log` ou `notify` com uma mensagem vazia escrita diretamente. Só se deteta o texto `""` literal: em `log(x + "")` o conteúdo só se conhece em execução. | `log("");` · `notify("");` |
 
-**Total: 32 erros + 5 avisos = 37 verificações**, todas com teste automático.
-
----
-
-## 5. Atributos da gramática de atributos usados por cada família
-
-| Atributo | Tipo | Usado em |
-|---|---|---|
-| `env` (pilha de scopes: nome → tipo, tipo de símbolo, usado?) | herdado | famílias 1, 3, 5, 6 · W02, W03 |
-| `alertas` (tabela de esquemas) | herdado (sintetizado na 1.ª passagem) | famílias 2, 3 · W04 |
-| `em_condicao` | herdado | W01 |
-| `tipo` | sintetizado | famílias 3, 4 |
-| `secreto` | sintetizado | família 6 |
-| `erros` | sintetizado | todas |
+**Total: 32 erros + 6 avisos = 38 verificações**, cada uma com um programa de teste em `testes/` que assinala a linha com `# expect: CÓDIGO`.
 
 ---
 
-## 6. Cobertura do exemplo em LarkAG
+## 5. Onde está cada regra
 
-`sentinela_ag.py` especifica em LarkAG (SA/IA, ER, CC) os erros E101–E104, E201, E203, E204, E301–E310,
-E401–E403, E405, E501, E502, E601 e E602. Os restantes (E105, E202, E404, E603, E701–E703 e os avisos
-W01–W05) estão especificados em `GRAMATICA.md` e implementados no verificador Python. As regras são as mesmas; a diferença é que o
-LarkAG para no primeiro erro, enquanto o verificador reporta todos.
+Todas as regras estão em `sentinela.ag`, como **condições de contexto** (erros) ou como entradas do atributo **`warnings`** (avisos). A tabela de `GRAMATICA.md` (§6) diz em que produção está cada código, e `GRAMATICA.md` (§3) explica que atributos cada regra usa.
 
-## 7. O que **não** se consegue apanhar antes da execução
+| Família | Atributos principais |
+|---|---|
+| 1. Declarações e scopes | `env`, `scope`, `level`, `seen` |
+| 2. Alertas e handlers | `alerttab`, `seen`, `handled` |
+| 3. Tipos | `type` |
+| 4. Chamadas | `signature`, `types` |
+| 5. Mutabilidade | `env` (espécie de cada nome) |
+| 6. Segredos | `secret`, `secrets` |
+| 7. Literais de rede | valor dos tokens `IP`, `CIDR`, `DURATION` |
+| Avisos | `guarded`, `declared`, `used`, `const`, `consts`, `warnings` |
+
+## 6. O que **não** se consegue apanhar antes da execução
 
 É importante dizer isto no relatório: são limites de qualquer análise estática.
 
@@ -178,11 +174,11 @@ LarkAG para no primeiro erro, enquanto o verificador reporta todos.
 
 ---
 
-## 8. Como correr
+## 7. Como correr
 
 ```bash
-pip install lark pytest
-python verificador.py exemplos/*.snt erros/*.snt     # ver os diagnósticos
-python sentinela_ag.py exemplos/*.snt                # gramática de atributos (LarkAG)
-pytest -v                                            # 73 testes: sintaxe + semântica + GA
+pip install -r requirements.txt
+python sentinela.py testes/*.snt       # um programa por código: mostra cada erro e aviso
+python sentinela.py exemplos/*.snt     # os 4 casos práticos: todos ativos, sem avisos
+pytest -q                              # testes automáticos
 ```

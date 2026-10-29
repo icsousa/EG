@@ -1,0 +1,810 @@
+// =====================================================================
+//  Sentinela v2.0 — gramática de atributos completa em LarkAG
+//
+//  Este ficheiro é a ÚNICA definição da linguagem: a gramática
+//  independente de contexto (BNF, produções P1–P55 de GRAMATICA.md),
+//  os atributos, as regras de cálculo (ER) e as condições de contexto
+//  (CC). Correr com: python sentinela.py <ficheiro.snt>
+//
+//  Erros    = condições de contexto (CC): o primeiro que falhar pára a
+//             avaliação e o playbook NÃO é ativado.
+//  Avisos   = atributo sintetizado "warnings": não impedem a ativação.
+//
+//  Convenções (impostas pelo LarkAG):
+//   - nomes de não-terminais sem "_" (o LarkAG usa "_" para numerar
+//     alternativas) e diferentes dos nomes dos atributos;
+//   - nas regras não se escrevem palavras iguais a nomes de
+//     não-terminais dentro de strings Python (seriam substituídas).
+// =====================================================================
+
+
+// =====================================================================
+//  DECLARAÇÃO DOS ATRIBUTOS  (GRAMATICA.md, secção 3)
+//   IA = herdado (vem do pai ou dos irmãos à esquerda)
+//   SA = sintetizado (calculado a partir dos filhos)
+//
+//   Tipo      = str   "int" "bool" "string" "ip" "cidr" "duration"
+//                     "list<T>"  "A:alerta" (alias de um alerta)
+//   Env       = dict[str, tuple[str, str]]  nome -> (tipo, espécie)
+//               espécie em {"var", "secret", "loop", "alias"}
+//   Scope     = set[str]                    nomes do scope atual
+//   AlertTab  = dict[str, dict[str, str]]   alerta -> {campo: tipo}
+//   Warning   = tuple[str, int, str]        (código, linha, mensagem)
+// =====================================================================
+
+// ---- programa e alertas
+SA(start)      { warnings : list[tuple[str, int, str]] }
+SA(alerts)     { table : dict[str, dict[str, str]], lines : dict[str, int] }
+IA(alert)      { seen : set[str] }
+SA(alert)      { name : str, fieldtab : dict[str, str], line : int }
+SA(fields)     { table : dict[str, str] }
+IA(field)      { seen : set[str] }
+SA(field)      { name : str, type : str }
+SA(datatype)   { type : str }
+
+// ---- playbook e handlers
+IA(playbook)   { alerttab : dict[str, dict[str, str]] }
+SA(playbook)   { handled : set[str], warnings : list[tuple[str, int, str]] }
+IA(statedecls) { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(statedecls) { envout : dict[str, tuple[str, str]], declared : dict[str, int], used : set[str], warnings : list[tuple[str, int, str]] }
+IA(handlers)   { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(handlers)   { handled : set[str], used : set[str], warnings : list[tuple[str, int, str]] }
+IA(handler)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]], seen : set[str] }
+SA(handler)    { target : str, used : set[str], warnings : list[tuple[str, int, str]] }
+SA(ident)      { name : str, line : int }
+
+// ---- instruções
+IA(block)      { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]], guarded : bool }
+SA(block)      { used : set[str], warnings : list[tuple[str, int, str]] }
+IA(stmts)      { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]], guarded : bool }
+SA(stmts)      { envout : dict[str, tuple[str, str]], scopeout : set[str], declared : dict[str, int], used : set[str], warnings : list[tuple[str, int, str]] }
+IA(stmt)       { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]], guarded : bool }
+SA(stmt)       { envout : dict[str, tuple[str, str]], scopeout : set[str], declared : dict[str, int], used : set[str], warnings : list[tuple[str, int, str]] }
+IA(vardecl)    { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]], level : str }
+SA(vardecl)    { envout : dict[str, tuple[str, str]], scopeout : set[str], declared : dict[str, int], used : set[str], warnings : list[tuple[str, int, str]] }
+
+// ---- chamadas
+SA(callee)     { name : str, signature : tuple, line : int }
+IA(args)       { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(args)       { types : list[str], secrets : list[bool], consts : list[str], used : set[str] }
+IA(items)      { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(items)      { types : list[str], secret : bool, used : set[str] }
+
+// ---- expressões: herdam o contexto; sintetizam o tipo, se dependem de um
+//      segredo, o texto de uma constante (true/false/"...") e os nomes lidos
+IA(expr)       { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(expr)       { type : str, secret : bool, const : str, used : set[str] }
+IA(andexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(andexpr)    { type : str, secret : bool, const : str, used : set[str] }
+IA(notexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(notexpr)    { type : str, secret : bool, const : str, used : set[str] }
+IA(relexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(relexpr)    { type : str, secret : bool, const : str, used : set[str] }
+IA(addexpr)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(addexpr)    { type : str, secret : bool, const : str, used : set[str] }
+IA(accessexpr) { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(accessexpr) { type : str, secret : bool, const : str, used : set[str] }
+IA(primary)    { env : dict[str, tuple[str, str]], alerttab : dict[str, dict[str, str]] }
+SA(primary)    { type : str, secret : bool, const : str, used : set[str] }
+
+
+// =====================================================================
+//  P1–P9  Programa e alertas
+// =====================================================================
+
+// P1
+start : alerts playbook
+ER {
+  playbook.alerttab = alerts.table;
+  start.warnings = sorted(playbook.warnings + [("W04", alerts.lines[a], "o alerta '" + a + "' não é tratado por nenhum on") for a in alerts.table if a not in playbook.handled], key=lambda w: w[1]);
+}
+
+// P2, P3
+alerts : alerts alert
+ER {
+  alert.seen = set(alerts[2].table);
+  alerts[1].table = alerts[2].table | { alert.name : alert.fieldtab };
+  alerts[1].lines = alerts[2].lines | { alert.name : alert.line };
+}
+|
+ER {
+  alerts.table = {};
+  alerts.lines = {};
+}
+
+// P4
+alert : "alert" NAME "{" fields "}"
+ER {
+  alert.name = str(NAME);
+  alert.line = getattr(NAME, "line");
+  alert.fieldtab = fields.table;
+}
+CC {
+  str(NAME) not in alert.seen -> "E103: alerta declarado duas vezes";
+}
+
+// P5, P6
+fields : fields field
+ER {
+  field.seen = set(fields[2].table);
+  fields[1].table = fields[2].table | { field.name : field.type };
+}
+|
+ER {
+  fields.table = {};
+}
+
+// P7
+field : NAME ":" datatype ";"
+ER {
+  field.name = str(NAME);
+  field.type = datatype.type;
+}
+CC {
+  str(NAME) not in field.seen -> "E104: campo repetido no mesmo alerta";
+}
+
+// P8, P9
+datatype : "int"      ER { datatype.type = "int"; }
+         | "bool"     ER { datatype.type = "bool"; }
+         | "string"   ER { datatype.type = "string"; }
+         | "ip"       ER { datatype.type = "ip"; }
+         | "cidr"     ER { datatype.type = "cidr"; }
+         | "duration" ER { datatype.type = "duration"; }
+         | "list" "<" datatype ">"
+           ER { datatype[1].type = "list<" + datatype[2].type + ">"; }
+
+
+// =====================================================================
+//  P10–P17  Playbook e handlers (serviço sempre ativo)
+// =====================================================================
+
+// P10 — as variáveis de statedecls são o estado persistente do playbook
+playbook : "playbook" NAME "{" statedecls handlers "}"
+ER {
+  statedecls.env = {};
+  statedecls.alerttab = playbook.alerttab;
+  handlers.env = statedecls.envout;
+  handlers.alerttab = playbook.alerttab;
+  playbook.handled = handlers.handled;
+  playbook.warnings = statedecls.warnings + handlers.warnings + [("W02", l, "'" + n + "' é declarada mas nunca é usada") for n, l in statedecls.declared.items() if n not in statedecls.used | handlers.used];
+}
+
+// P11, P12
+statedecls : statedecls vardecl
+ER {
+  statedecls[2].env = statedecls[1].env;
+  statedecls[2].alerttab = statedecls[1].alerttab;
+  vardecl.env = statedecls[2].envout;
+  vardecl.scope = set(statedecls[2].envout);
+  vardecl.alerttab = statedecls[1].alerttab;
+  vardecl.level = "top";
+  statedecls[1].envout = vardecl.envout;
+  statedecls[1].declared = statedecls[2].declared | vardecl.declared;
+  statedecls[1].used = statedecls[2].used | vardecl.used;
+  statedecls[1].warnings = statedecls[2].warnings + vardecl.warnings;
+}
+|
+ER {
+  statedecls.envout = statedecls.env;
+  statedecls.declared = {};
+  statedecls.used = set();
+  statedecls.warnings = [];
+}
+
+// P13, P14
+handlers : handlers handler
+ER {
+  handlers[2].env = handlers[1].env;
+  handlers[2].alerttab = handlers[1].alerttab;
+  handler.env = handlers[1].env;
+  handler.alerttab = handlers[1].alerttab;
+  handler.seen = handlers[2].handled;
+  handlers[1].handled = handlers[2].handled | ({ handler.target } - { "" });
+  handlers[1].used = handlers[2].used | handler.used;
+  handlers[1].warnings = handlers[2].warnings + handler.warnings;
+}
+| handler
+ER {
+  handler.env = handlers.env;
+  handler.alerttab = handlers.alerttab;
+  handler.seen = set();
+  handlers.handled = { handler.target } - { "" };
+  handlers.used = handler.used;
+  handlers.warnings = handler.warnings;
+}
+
+// P15 — corre sempre que chega um alerta
+handler : "on" ident "as" ident block
+ER {
+  block.env = handler.env | { ident[2].name : ("A:" + ident[1].name, "alias") };
+  block.scope = { ident[2].name };
+  block.alerttab = handler.alerttab;
+  block.guarded = False;
+  handler.target = ident[1].name;
+  handler.used = block.used;
+  handler.warnings = block.warnings + ([("W03", ident[2].line, "'" + ident[2].name + "' esconde uma variável do estado")] if ident[2].name in handler.env else []);
+}
+CC {
+  ident[1].name in handler.alerttab -> "E201: on para um alerta que não foi declarado";
+  ident[1].name not in handler.seen -> "E202: já existe um on para este alerta";
+}
+// P16 — corre periodicamente, haja ou não alertas
+| "every" DURATION block
+ER {
+  block.env = handler.env;
+  block.scope = set();
+  block.alerttab = handler.alerttab;
+  block.guarded = False;
+  handler.target = "";
+  handler.used = block.used;
+  handler.warnings = block.warnings;
+}
+CC {
+  int(str(DURATION)[:-1]) > 0 -> "E703: a duração tem de ser maior que zero";
+}
+
+// P17 — um terminal não pode ser indexado (NAME[2]); por isso usa-se ident
+ident : NAME
+ER {
+  ident.name = str(NAME);
+  ident.line = getattr(NAME, "line");
+}
+
+
+// =====================================================================
+//  P18–P32  Blocos, declarações e instruções
+// =====================================================================
+
+// P18
+block : "{" stmts "}"
+ER {
+  stmts.env = block.env;
+  stmts.scope = block.scope;
+  stmts.alerttab = block.alerttab;
+  stmts.guarded = block.guarded;
+  block.used = stmts.used;
+  block.warnings = stmts.warnings + [("W02", l, "'" + n + "' é declarada mas nunca é usada") for n, l in stmts.declared.items() if n not in stmts.used];
+}
+
+// P19, P20 — o ambiente cresce da esquerda para a direita
+stmts : stmts stmt
+ER {
+  stmts[2].env = stmts[1].env;
+  stmts[2].scope = stmts[1].scope;
+  stmts[2].alerttab = stmts[1].alerttab;
+  stmts[2].guarded = stmts[1].guarded;
+  stmt.env = stmts[2].envout;
+  stmt.scope = stmts[2].scopeout;
+  stmt.alerttab = stmts[1].alerttab;
+  stmt.guarded = stmts[1].guarded;
+  stmts[1].envout = stmt.envout;
+  stmts[1].scopeout = stmt.scopeout;
+  stmts[1].declared = stmts[2].declared | stmt.declared;
+  stmts[1].used = stmts[2].used | stmt.used;
+  stmts[1].warnings = stmts[2].warnings + stmt.warnings;
+}
+|
+ER {
+  stmts.envout = stmts.env;
+  stmts.scopeout = stmts.scope;
+  stmts.declared = {};
+  stmts.used = set();
+  stmts.warnings = [];
+}
+
+// P21
+vardecl : "var" NAME ":" datatype "=" expr ";"
+ER {
+  expr.env = vardecl.env;
+  expr.alerttab = vardecl.alerttab;
+  vardecl.envout = vardecl.env | { str(NAME) : (datatype.type, "var") };
+  vardecl.scopeout = vardecl.scope | { str(NAME) };
+  vardecl.declared = { str(NAME) : getattr(NAME, "line") };
+  vardecl.used = expr.used;
+  vardecl.warnings = [("W03", getattr(NAME, "line"), "'" + str(NAME) + "' esconde uma variável de um scope exterior")] if str(NAME) in vardecl.env and str(NAME) not in vardecl.scope else [];
+}
+CC {
+  str(NAME) not in vardecl.scope -> "E102: nome já declarado neste scope";
+  expr.type == datatype.type -> "E301: o valor não tem o tipo declarado";
+  not expr.secret -> "E602: um segredo não pode ser guardado numa variável normal";
+}
+// P22
+| "secret" NAME ":" datatype "=" expr ";"
+ER {
+  expr.env = vardecl.env;
+  expr.alerttab = vardecl.alerttab;
+  vardecl.envout = vardecl.env | { str(NAME) : (datatype.type, "secret") };
+  vardecl.scopeout = vardecl.scope | { str(NAME) };
+  vardecl.declared = { str(NAME) : getattr(NAME, "line") };
+  vardecl.used = expr.used;
+  vardecl.warnings = [];
+}
+CC {
+  vardecl.level == "top" -> "E105: um segredo só pode ser declarado no estado do playbook";
+  str(NAME) not in vardecl.scope -> "E102: nome já declarado neste scope";
+  expr.type == datatype.type -> "E301: o valor não tem o tipo declarado";
+}
+
+// P23
+stmt : vardecl
+ER {
+  vardecl.env = stmt.env;
+  vardecl.scope = stmt.scope;
+  vardecl.alerttab = stmt.alerttab;
+  vardecl.level = "inner";
+  stmt.envout = vardecl.envout;
+  stmt.scopeout = vardecl.scopeout;
+  stmt.declared = vardecl.declared;
+  stmt.used = vardecl.used;
+  stmt.warnings = vardecl.warnings;
+}
+// P24 — atribuição
+| NAME "=" expr ";"
+ER {
+  expr.env = stmt.env;
+  expr.alerttab = stmt.alerttab;
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = expr.used;
+  stmt.warnings = [];
+}
+CC {
+  str(NAME) in stmt.env -> "E101: nome não declarado";
+  stmt.env[str(NAME)][1] != "secret" -> "E501: um segredo não pode ser alterado";
+  stmt.env[str(NAME)][1] not in ("loop", "alias") -> "E502: a variável do for e o alias do alerta são só de leitura";
+  stmt.env[str(NAME)][0] == expr.type -> "E301: o valor não tem o tipo da variável";
+  not expr.secret -> "E602: um segredo não pode ser guardado numa variável normal";
+}
+// P25 — if sem else
+| "if" "(" expr ")" block
+ER {
+  expr.env = stmt.env;
+  expr.alerttab = stmt.alerttab;
+  block.env = stmt.env;
+  block.scope = set();
+  block.alerttab = stmt.alerttab;
+  block.guarded = True;
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = expr.used | block.used;
+  stmt.warnings = ([("W05", getattr(getattr(expr, "meta"), "line"), "a condição é sempre " + expr.const)] if expr.const in ("true", "false") else []) + block.warnings;
+}
+CC {
+  expr.type == "bool" -> "E308: a condição do if tem de ser bool";
+  not expr.secret -> "E603: um segredo não pode controlar um if ou um for";
+}
+// P26 — if com else
+| "if" "(" expr ")" block "else" block
+ER {
+  expr.env = stmt.env;
+  expr.alerttab = stmt.alerttab;
+  block[1].env = stmt.env;
+  block[1].scope = set();
+  block[1].alerttab = stmt.alerttab;
+  block[1].guarded = True;
+  block[2].env = stmt.env;
+  block[2].scope = set();
+  block[2].alerttab = stmt.alerttab;
+  block[2].guarded = True;
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = expr.used | block[1].used | block[2].used;
+  stmt.warnings = ([("W05", getattr(getattr(expr, "meta"), "line"), "a condição é sempre " + expr.const)] if expr.const in ("true", "false") else []) + block[1].warnings + block[2].warnings;
+}
+CC {
+  expr.type == "bool" -> "E308: a condição do if tem de ser bool";
+  not expr.secret -> "E603: um segredo não pode controlar um if ou um for";
+}
+// P27 — ciclo
+| "for" NAME "in" expr block
+ER {
+  expr.env = stmt.env;
+  expr.alerttab = stmt.alerttab;
+  block.env = stmt.env | { str(NAME) : (expr.type[5:-1], "loop") };
+  block.scope = { str(NAME) };
+  block.alerttab = stmt.alerttab;
+  block.guarded = stmt.guarded;
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = expr.used | block.used;
+  stmt.warnings = ([("W03", getattr(NAME, "line"), "'" + str(NAME) + "' esconde uma variável de um scope exterior")] if str(NAME) in stmt.env else []) + block.warnings;
+}
+CC {
+  expr.type.startswith("list<") -> "E309: o for tem de percorrer uma lista";
+  not expr.secret -> "E603: um segredo não pode controlar um if ou um for";
+}
+// P28 — chamada de uma ação
+| callee "(" args ")" ";"
+ER {
+  args.env = stmt.env;
+  args.alerttab = stmt.alerttab;
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = args.used;
+  stmt.warnings = ([("W01", callee.line, "a ação destrutiva '" + callee.name + "' é executada sem nenhuma condição")] if callee.signature and callee.signature[3] and not stmt.guarded else []) + ([("W06", callee.line, "'" + callee.name + "' com uma mensagem vazia")] if callee.name in ("log", "notify") and args.consts[0] == '""' else []);
+}
+CC {
+  callee.signature is not None -> "E401: ação ou função desconhecida";
+  callee.signature[2] is None -> "E404: uma função que devolve um valor não pode ser usada como instrução";
+  callee.signature[1] <= len(args.types) <= len(callee.signature[0]) -> "E402: número de argumentos errado";
+  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com o tipo errado";
+  not any(s for i, s in enumerate(args.secrets) if not (callee.name == "notify" and i == 1)) -> "E601: um segredo só pode ser passado como credencial do notify";
+}
+// P29 — chamada sem argumentos
+| callee "(" ")" ";"
+ER {
+  stmt.envout = stmt.env;
+  stmt.scopeout = stmt.scope;
+  stmt.declared = {};
+  stmt.used = set();
+  stmt.warnings = [];
+}
+CC {
+  callee.signature is not None -> "E401: ação ou função desconhecida";
+  callee.signature[2] is None -> "E404: uma função que devolve um valor não pode ser usada como instrução";
+  callee.signature[1] == 0 -> "E402: número de argumentos errado";
+}
+
+// P30 — biblioteca: nome -> (parâmetros, nº mínimo, retorno, destrutiva)
+callee : NAME
+ER {
+  callee.name = str(NAME);
+  callee.line = getattr(NAME, "line");
+  callee.signature = {
+    "block_ip":   ([{"ip", "cidr"}, {"duration"}], 2, None, True),
+    "unblock_ip": ([{"ip", "cidr"}], 1, None, False),
+    "quarantine": ([{"ip"}], 1, None, True),
+    "rate_limit": ([{"ip"}, {"int"}], 2, None, False),
+    "log":        ([{"string"}], 1, None, False),
+    "notify":     ([{"string"}, {"string"}], 1, None, False),
+    "count":      ([{"ip"}, {"duration"}], 2, "int", False),
+    "len":        ([{"L"}], 1, "int", False),
+    "str":        ([{"*"}], 1, "string", False)
+  }.get(str(NAME));
+}
+
+// P31, P32
+args : args "," expr
+ER {
+  args[2].env = args[1].env;
+  args[2].alerttab = args[1].alerttab;
+  expr.env = args[1].env;
+  expr.alerttab = args[1].alerttab;
+  args[1].types = args[2].types + [expr.type];
+  args[1].secrets = args[2].secrets + [expr.secret];
+  args[1].consts = args[2].consts + [expr.const];
+  args[1].used = args[2].used | expr.used;
+}
+| expr
+ER {
+  expr.env = args.env;
+  expr.alerttab = args.alerttab;
+  args.types = [expr.type];
+  args.secrets = [expr.secret];
+  args.consts = [expr.const];
+  args.used = expr.used;
+}
+
+
+// =====================================================================
+//  P33–P55  Expressões (da menor para a maior precedência)
+//  Todas herdam env e alerttab e sintetizam type, secret, const e used.
+// =====================================================================
+
+// P33, P34
+expr : expr "or" andexpr
+ER {
+  expr[2].env = expr[1].env;
+  expr[2].alerttab = expr[1].alerttab;
+  andexpr.env = expr[1].env;
+  andexpr.alerttab = expr[1].alerttab;
+  expr[1].type = "bool";
+  expr[1].secret = expr[2].secret or andexpr.secret;
+  expr[1].const = "";
+  expr[1].used = expr[2].used | andexpr.used;
+}
+CC {
+  expr[2].type == "bool" and andexpr.type == "bool" -> "E307: 'or' precisa de operandos bool";
+}
+| andexpr
+ER {
+  andexpr.env = expr.env;
+  andexpr.alerttab = expr.alerttab;
+  expr.type = andexpr.type;
+  expr.secret = andexpr.secret;
+  expr.const = andexpr.const;
+  expr.used = andexpr.used;
+}
+
+// P35, P36
+andexpr : andexpr "and" notexpr
+ER {
+  andexpr[2].env = andexpr[1].env;
+  andexpr[2].alerttab = andexpr[1].alerttab;
+  notexpr.env = andexpr[1].env;
+  notexpr.alerttab = andexpr[1].alerttab;
+  andexpr[1].type = "bool";
+  andexpr[1].secret = andexpr[2].secret or notexpr.secret;
+  andexpr[1].const = "";
+  andexpr[1].used = andexpr[2].used | notexpr.used;
+}
+CC {
+  andexpr[2].type == "bool" and notexpr.type == "bool" -> "E307: 'and' precisa de operandos bool";
+}
+| notexpr
+ER {
+  notexpr.env = andexpr.env;
+  notexpr.alerttab = andexpr.alerttab;
+  andexpr.type = notexpr.type;
+  andexpr.secret = notexpr.secret;
+  andexpr.const = notexpr.const;
+  andexpr.used = notexpr.used;
+}
+
+// P37, P38
+notexpr : "not" notexpr
+ER {
+  notexpr[2].env = notexpr[1].env;
+  notexpr[2].alerttab = notexpr[1].alerttab;
+  notexpr[1].type = "bool";
+  notexpr[1].secret = notexpr[2].secret;
+  notexpr[1].const = "";
+  notexpr[1].used = notexpr[2].used;
+}
+CC {
+  notexpr[2].type == "bool" -> "E307: 'not' precisa de um bool";
+}
+| relexpr
+ER {
+  relexpr.env = notexpr.env;
+  relexpr.alerttab = notexpr.alerttab;
+  notexpr.type = relexpr.type;
+  notexpr.secret = relexpr.secret;
+  notexpr.const = relexpr.const;
+  notexpr.used = relexpr.used;
+}
+
+// P39, P40, P41
+relexpr : addexpr RELOP addexpr
+ER {
+  addexpr[1].env = relexpr.env;
+  addexpr[1].alerttab = relexpr.alerttab;
+  addexpr[2].env = relexpr.env;
+  addexpr[2].alerttab = relexpr.alerttab;
+  relexpr.type = "bool";
+  relexpr.secret = addexpr[1].secret or addexpr[2].secret;
+  relexpr.const = "";
+  relexpr.used = addexpr[1].used | addexpr[2].used;
+}
+CC {
+  str(RELOP) in ("==", "!=") or (addexpr[1].type == addexpr[2].type and addexpr[1].type in ("int", "duration")) -> "E304: '<', '>', '<=' e '>=' só comparam int ou duration do mesmo tipo";
+  str(RELOP) not in ("==", "!=") or (addexpr[1].type == addexpr[2].type and not addexpr[1].type.startswith("A:") and not addexpr[1].type.startswith("list<")) -> "E305: '==' e '!=' só comparam valores do mesmo tipo";
+}
+| addexpr "in" addexpr
+ER {
+  addexpr[1].env = relexpr.env;
+  addexpr[1].alerttab = relexpr.alerttab;
+  addexpr[2].env = relexpr.env;
+  addexpr[2].alerttab = relexpr.alerttab;
+  relexpr.type = "bool";
+  relexpr.secret = addexpr[1].secret or addexpr[2].secret;
+  relexpr.const = "";
+  relexpr.used = addexpr[1].used | addexpr[2].used;
+}
+CC {
+  addexpr[2].type == "list<" + addexpr[1].type + ">" or (addexpr[1].type == "ip" and addexpr[2].type == "cidr") -> "E306: 'in' só se aplica a T in list<T> ou a ip in cidr";
+}
+| addexpr
+ER {
+  addexpr.env = relexpr.env;
+  addexpr.alerttab = relexpr.alerttab;
+  relexpr.type = addexpr.type;
+  relexpr.secret = addexpr.secret;
+  relexpr.const = addexpr.const;
+  relexpr.used = addexpr.used;
+}
+
+// P42, P43, P44
+addexpr : addexpr "+" accessexpr
+ER {
+  addexpr[2].env = addexpr[1].env;
+  addexpr[2].alerttab = addexpr[1].alerttab;
+  accessexpr.env = addexpr[1].env;
+  accessexpr.alerttab = addexpr[1].alerttab;
+  addexpr[1].type = accessexpr.type;
+  addexpr[1].secret = addexpr[2].secret or accessexpr.secret;
+  addexpr[1].const = "";
+  addexpr[1].used = addexpr[2].used | accessexpr.used;
+}
+CC {
+  addexpr[2].type == accessexpr.type and accessexpr.type in ("int", "string", "duration") -> "E302: '+' só soma int, string ou duration do mesmo tipo (use str() para converter)";
+}
+| addexpr "-" accessexpr
+ER {
+  addexpr[2].env = addexpr[1].env;
+  addexpr[2].alerttab = addexpr[1].alerttab;
+  accessexpr.env = addexpr[1].env;
+  accessexpr.alerttab = addexpr[1].alerttab;
+  addexpr[1].type = accessexpr.type;
+  addexpr[1].secret = addexpr[2].secret or accessexpr.secret;
+  addexpr[1].const = "";
+  addexpr[1].used = addexpr[2].used | accessexpr.used;
+}
+CC {
+  addexpr[2].type == accessexpr.type and accessexpr.type in ("int", "duration") -> "E303: '-' só subtrai int ou duration do mesmo tipo";
+}
+| accessexpr
+ER {
+  accessexpr.env = addexpr.env;
+  accessexpr.alerttab = addexpr.alerttab;
+  addexpr.type = accessexpr.type;
+  addexpr.secret = accessexpr.secret;
+  addexpr.const = accessexpr.const;
+  addexpr.used = accessexpr.used;
+}
+
+// P45, P46
+accessexpr : accessexpr "." NAME
+ER {
+  accessexpr[2].env = accessexpr[1].env;
+  accessexpr[2].alerttab = accessexpr[1].alerttab;
+  accessexpr[1].type = accessexpr[1].alerttab.get(accessexpr[2].type[2:], {}).get(str(NAME), "?");
+  accessexpr[1].secret = accessexpr[2].secret;
+  accessexpr[1].const = "";
+  accessexpr[1].used = accessexpr[2].used;
+}
+CC {
+  accessexpr[2].type.startswith("A:") -> "E203: só se pode aceder a campos do alias de um alerta";
+  str(NAME) in accessexpr[1].alerttab.get(accessexpr[2].type[2:], {}) -> "E204: o alerta não tem esse campo";
+}
+| primary
+ER {
+  primary.env = accessexpr.env;
+  primary.alerttab = accessexpr.alerttab;
+  accessexpr.type = primary.type;
+  accessexpr.secret = primary.secret;
+  accessexpr.const = primary.const;
+  accessexpr.used = primary.used;
+}
+
+// P47 — uso de um nome
+primary : NAME
+ER {
+  primary.type = primary.env.get(str(NAME), ("?", "var"))[0];
+  primary.secret = primary.env.get(str(NAME), ("?", "var"))[1] == "secret";
+  primary.const = "";
+  primary.used = { str(NAME) };
+}
+CC {
+  str(NAME) in primary.env -> "E101: nome não declarado";
+}
+// P48 — chamada de uma função
+| callee "(" args ")"
+ER {
+  args.env = primary.env;
+  args.alerttab = primary.alerttab;
+  primary.type = callee.signature[2] if callee.signature and callee.signature[2] else "?";
+  primary.secret = any(args.secrets);
+  primary.const = "";
+  primary.used = args.used;
+}
+CC {
+  callee.signature is not None -> "E401: ação ou função desconhecida";
+  callee.signature[2] is not None -> "E405: esta ação não devolve um valor";
+  callee.signature[1] <= len(args.types) <= len(callee.signature[0]) -> "E402: número de argumentos errado";
+  all(t in ps or "*" in ps or ("L" in ps and t.startswith("list<")) for t, ps in zip(args.types, callee.signature[0])) -> "E403: argumento com o tipo errado";
+}
+// P49
+| callee "(" ")"
+ER {
+  primary.type = callee.signature[2] if callee.signature and callee.signature[2] else "?";
+  primary.secret = False;
+  primary.const = "";
+  primary.used = set();
+}
+CC {
+  callee.signature is not None -> "E401: ação ou função desconhecida";
+  callee.signature[2] is not None -> "E405: esta ação não devolve um valor";
+  callee.signature[1] == 0 -> "E402: número de argumentos errado";
+}
+// P50
+| "(" expr ")"
+ER {
+  expr.env = primary.env;
+  expr.alerttab = primary.alerttab;
+  primary.type = expr.type;
+  primary.secret = expr.secret;
+  primary.const = expr.const;
+  primary.used = expr.used;
+}
+// P51
+| "[" items "]"
+ER {
+  items.env = primary.env;
+  items.alerttab = primary.alerttab;
+  primary.type = "list<" + items.types[0] + ">";
+  primary.secret = items.secret;
+  primary.const = "";
+  primary.used = items.used;
+}
+CC {
+  len(set(items.types)) == 1 -> "E310: os elementos de uma lista têm de ter todos o mesmo tipo";
+}
+// P52
+| "[" "]"
+ER {
+  primary.type = "?";
+  primary.secret = False;
+  primary.const = "";
+  primary.used = set();
+}
+CC {
+  False -> "E310: a lista vazia não tem tipo";
+}
+// P53 — literais
+| INT
+ER { primary.type = "int"; primary.secret = False; primary.const = ""; primary.used = set(); }
+| STRING
+ER { primary.type = "string"; primary.secret = False; primary.const = str(STRING); primary.used = set(); }
+| IP
+ER { primary.type = "ip"; primary.secret = False; primary.const = ""; primary.used = set(); }
+CC {
+  all(int(o) <= 255 for o in str(IP).split(".")) -> "E701: endereço IPv4 inválido (octeto maior que 255)";
+}
+| CIDR
+ER { primary.type = "cidr"; primary.secret = False; primary.const = ""; primary.used = set(); }
+CC {
+  all(int(o) <= 255 for o in str(CIDR).split("/")[0].split(".")) -> "E701: endereço IPv4 inválido (octeto maior que 255)";
+  int(str(CIDR).split("/")[1]) <= 32 -> "E702: o prefixo de uma rede é no máximo /32";
+}
+| DURATION
+ER { primary.type = "duration"; primary.secret = False; primary.const = ""; primary.used = set(); }
+CC {
+  int(str(DURATION)[:-1]) > 0 -> "E703: a duração tem de ser maior que zero";
+}
+| BOOL
+ER { primary.type = "bool"; primary.secret = False; primary.const = str(BOOL); primary.used = set(); }
+
+// P54, P55
+items : items "," expr
+ER {
+  items[2].env = items[1].env;
+  items[2].alerttab = items[1].alerttab;
+  expr.env = items[1].env;
+  expr.alerttab = items[1].alerttab;
+  items[1].types = items[2].types + [expr.type];
+  items[1].secret = items[2].secret or expr.secret;
+  items[1].used = items[2].used | expr.used;
+}
+| expr
+ER {
+  expr.env = items.env;
+  expr.alerttab = items.alerttab;
+  items.types = [expr.type];
+  items.secret = expr.secret;
+  items.used = expr.used;
+}
+
+
+// =====================================================================
+//  Terminais
+// =====================================================================
+RELOP      : "==" | "!=" | "<=" | ">=" | "<" | ">"
+BOOL.2     : "true" | "false"
+CIDR.5     : /\d{1,3}(\.\d{1,3}){3}\/\d{1,2}/
+IP.4       : /\d{1,3}(\.\d{1,3}){3}/
+DURATION.3 : /\d+(s|m|h)\b/
+INT        : /\d+/
+STRING     : /"[^"]*"/
+NAME       : /[a-zA-Z_][a-zA-Z0-9_]*/
+COMMENT    : /\#[^\n]*/
+
+%import common.WS
+%ignore WS
+%ignore COMMENT

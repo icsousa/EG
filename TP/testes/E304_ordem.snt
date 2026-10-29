@@ -1,0 +1,13 @@
+# E304: Comparar com < ou > valores que não são int nem duration.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    if (s.src > 10.0.0.1) {                 # expect: E304
+      log("x");
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# E602: Guardar um segredo numa variável normal.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  secret token: string = "abc";
+  var copia: string = token;                # expect: E602
+  on scan as s {
+    log(copia);
+  }
+}

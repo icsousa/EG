@@ -1,0 +1,11 @@
+# E204: Aceder a um campo que o alerta não tem.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log(str(s.porta));                      # expect: E204
+  }
+}

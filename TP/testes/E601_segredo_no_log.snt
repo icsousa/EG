@@ -1,0 +1,12 @@
+# E601: Passar um segredo a uma ação que não o protege.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  secret token: string = "abc";
+  on scan as s {
+    log("token=" + token);                  # expect: E601
+  }
+}

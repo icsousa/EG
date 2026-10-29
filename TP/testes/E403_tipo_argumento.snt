@@ -1,0 +1,11 @@
+# E403: Passar a uma ação um argumento do tipo errado.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log(s.port);                            # expect: E403
+  }
+}

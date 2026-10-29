@@ -1,0 +1,14 @@
+# E202: Escrever dois on para o mesmo alerta.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    log("x");
+  }
+  on scan as t {                            # expect: E202
+    log("y");
+  }
+}

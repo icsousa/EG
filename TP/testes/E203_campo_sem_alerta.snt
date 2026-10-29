@@ -1,0 +1,12 @@
+# E203: Aceder a um campo de algo que não é um alerta.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var limite: int = 5;
+  on scan as s {
+    log(str(limite.valor));                 # expect: E203
+  }
+}

@@ -1,0 +1,18 @@
+# W03: Declarar num bloco interior um nome que já existe fora.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var limite: int = 5;
+  on scan as s {
+    for porta in [22] {
+      var limite: int = 10;                 # expect: W03
+      log(str(limite + porta));
+    }
+    if (s.port > limite) {
+      log("y");
+    }
+  }
+}

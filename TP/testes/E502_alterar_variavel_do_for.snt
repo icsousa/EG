@@ -1,0 +1,13 @@
+# E502: Alterar a variável do for.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    for x in [1, 2] {
+      x = 3;                                # expect: E502
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# E310: Escrever uma lista vazia (não tem tipo).
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var l: list<int> = [];                    # expect: E310
+  on scan as s {
+    log(str(len(l)));
+  }
+}
