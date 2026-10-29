@@ -13,6 +13,8 @@ def prog(corpo, decls="", alertas="alert scan { src: ip; port: int; }"):
 CASOS = {
     "E101": prog('log(str(total));'),
     "E102": prog('', decls='var a: int = 1; var a: int = 2;'),
+    "E102_alias": prog('var s: int = 1;'),
+    "E102_for": prog('for x in [1] { var x: int = 2; }'),
     "E103": prog('log("x");', alertas="alert scan { src: ip; } alert scan { port: int; }"),
     "E104": prog('log("x");', alertas="alert scan { src: ip; src: int; }"),
     "E201": "alert scan { src: ip; } playbook p { on ddos as d { log(\"x\"); } }",
@@ -23,12 +25,15 @@ CASOS = {
     "E303": prog('log("a" - "b");'),
     "E304": prog('if (s.src > 10.0.0.1) { log("x"); }'),
     "E305": prog('if (s.port == "22") { log("x"); }'),
+    "E305_listas": prog('if ([1] == [2]) { log("x"); }'),
     "E306": prog('if (s.port in 10.0.0.0/8) { log("x"); }'),
     "E307": prog('if (s.port and true) { log("x"); }'),
     "E308": prog('if (s.port) { log("x"); }'),
     "E309": prog('for x in s.port { log("x"); }'),
     "E310": prog('', decls='var l: list<int> = [1, "2"];'),
     "E401": prog('ban_ip(s.src);'),
+    "E402_sem_args": prog('log();'),
+    "E310_vazia": prog('', decls='var l: list<int> = [];'),
     "E402": prog('block_ip(s.src);'),
     "E403": prog('block_ip(s.port, 1h);'),
     "E405": prog('var r: int = log("x");'),
@@ -42,7 +47,7 @@ CASOS = {
 def test_ag_detecta(codigo):
     with pytest.raises(ContextConditionError) as erro:
         AG.process(CASOS[codigo])
-    assert str(erro.value).startswith(codigo)
+    assert str(erro.value).startswith(codigo.split('_')[0])
 
 @pytest.mark.parametrize("f", sorted(Path("exemplos").glob("*.snt")), ids=lambda p: p.name)
 def test_ag_aceita_exemplos(f):

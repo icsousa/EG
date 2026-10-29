@@ -1,6 +1,6 @@
 # Sentinela: modelo de execução e catálogo de erros semânticos
 
-Versão 1.1 · Verificador completo em `verificador.py` (todos os códigos) · Gramática de atributos formal em `sentinela_ag.py` (LarkAG, 25 erros) · Testes em `test_semantica.py` e `test_ag.py`
+Versão 1.3 · GA completa em `GRAMATICA.md` · Verificador completo em `verificador.py` (todos os códigos) · Exemplo em LarkAG em `sentinela_ag.py` (25 erros) · Testes em `test_semantica.py` e `test_ag.py`
 
 ---
 
@@ -19,7 +19,7 @@ Um playbook **não é um script que corre uma vez**. É um **serviço contínuo*
 
 Exemplo (caso difícil, `exemplos/04_arp_spoofing.snt`): o handler `on arp_spoof` incrementa `incidentes` em cada ataque, e o handler `every 1h` envia um resumo e repõe o contador a zero.
 
-O verificador **não pára no primeiro erro**: reporta todos. Quando uma expressão tem um erro, o seu tipo passa a "desconhecido" (⊥), que é compatível com tudo, para evitar erros em cascata.
+O verificador **não para no primeiro erro**: reporta todos. Quando uma expressão tem um erro, o seu tipo passa a "desconhecido" (⊥), que é compatível com tudo, para evitar erros em cascata.
 
 ---
 
@@ -158,12 +158,12 @@ O lexer aceita qualquer `n.n.n.n`; o significado é verificado aqui.
 
 ---
 
-## 6. Cobertura da gramática de atributos em LarkAG
+## 6. Cobertura do exemplo em LarkAG
 
 `sentinela_ag.py` especifica em LarkAG (SA/IA, ER, CC) os erros E101–E104, E201, E203, E204, E301–E310,
-E401–E403, E405, E501, E502, E601 e E602. Ficam só no verificador Python: E105, E202, E404, E603,
-os literais de rede (E701–E703) e os avisos (W01–W05). As regras são as mesmas; a diferença é que o
-LarkAG pára no primeiro erro, enquanto o verificador reporta todos.
+E401–E403, E405, E501, E502, E601 e E602. Os restantes (E105, E202, E404, E603, E701–E703 e os avisos
+W01–W05) estão especificados em `GRAMATICA.md` e implementados no verificador Python. As regras são as mesmas; a diferença é que o
+LarkAG para no primeiro erro, enquanto o verificador reporta todos.
 
 ## 7. O que **não** se consegue apanhar antes da execução
 
@@ -184,5 +184,5 @@ LarkAG pára no primeiro erro, enquanto o verificador reporta todos.
 pip install lark pytest
 python verificador.py exemplos/*.snt erros/*.snt     # ver os diagnósticos
 python sentinela_ag.py exemplos/*.snt                # gramática de atributos (LarkAG)
-pytest -v                                            # 68 testes: sintaxe + semântica + GA
+pytest -v                                            # 73 testes: sintaxe + semântica + GA
 ```

@@ -107,12 +107,12 @@ class Verificador:
     def verificar(self, arvore):
         *alertas, playbook = arvore.children
         for a in alertas:                                   # passagem 1: recolher alertas
-            self.alert_decl(a)
+            self.alert(a)
         self.playbook(playbook)                             # passagem 2: playbook
         unicos = {(d.linha, d.codigo, d.mensagem): d for d in self.erros}
         return sorted(unicos.values())
 
-    def alert_decl(self, t):
+    def alert(self, t):
         nome, *campos = t.children
         if nome in self.alertas:
             self.diag("E103", nome.line, f"o alerta '{nome}' já foi declarado")
@@ -126,7 +126,7 @@ class Verificador:
         self.alertas[str(nome)] = tabela
 
     def tipo(self, t):
-        if t.data == "basic_type":
+        if t.data == "basictype":
             return str(t.children[0])
         return ("list", self.tipo(t.children[0]))
 
@@ -135,9 +135,9 @@ class Verificador:
         self.env.abrir()                                    # scope do playbook (estado persistente)
         tratados = set()
         for item in itens:
-            if item.data == "var_decl":
-                self.var_decl(item, em_condicao=False, nivel_playbook=True)
-            elif item.data == "on_handler":
+            if item.data == "vardecl":
+                self.vardecl(item, em_condicao=False, nivel_playbook=True)
+            elif item.data == "onhandler":
                 alerta, alias, bloco = item.children
                 if str(alerta) not in self.alertas:
                     self.diag("E201", alerta.line, f"não existe nenhum alerta '{alerta}' declarado")
@@ -149,7 +149,7 @@ class Verificador:
                 self.env.declarar(str(alias), Simbolo(tipo_alias, "alias", alias.line))
                 self.bloco(bloco, em_condicao=False, novo_scope=False)
                 self.env.fechar()
-            else:                                           # every_handler
+            else:                                           # everyhandler
                 duracao, bloco = item.children
                 self.literal_duracao(duracao)
                 self.bloco(bloco, em_condicao=False)
@@ -170,7 +170,7 @@ class Verificador:
     def instrucao(self, s, em_condicao):
         getattr(self, s.data)(s, em_condicao=em_condicao)
 
-    def var_decl(self, t, em_condicao, nivel_playbook=False):
+    def vardecl(self, t, em_condicao, nivel_playbook=False):
         kind, nome, ttipo, expr = t.children
         kind = str(kind.children[0])                        # 'var' | 'secret'
         declarado = self.tipo(ttipo)
@@ -199,7 +199,7 @@ class Verificador:
         if secreto and s.tipo_simbolo == "var":
             self.diag("E602", nome.line, f"um segredo não pode ser guardado na variável normal '{nome}'")
 
-    def if_stmt(self, t, em_condicao):
+    def ifstmt(self, t, em_condicao):
         cond, entao, senao = t.children
         tipo, secreto = self.expr(cond)
         linha = cond.meta.line if isinstance(cond, Tree) else cond.line
@@ -207,13 +207,13 @@ class Verificador:
             self.diag("E308", linha, f"a condição do if tem de ser bool, mas é {nome_tipo(tipo)}")
         if secreto:
             self.diag("E603", linha, "um segredo não pode ser usado numa condição (fuga implícita)")
-        if isinstance(cond, Tree) and cond.data == "bool_lit":
+        if isinstance(cond, Tree) and cond.data == "boollit":
             self.diag("W05", linha, f"a condição é sempre {cond.children[0]}")
         self.bloco(entao, em_condicao=True)
         if senao is not None:
             self.bloco(senao, em_condicao=True)
 
-    def for_stmt(self, t, em_condicao):
+    def forstmt(self, t, em_condicao):
         var, expr, corpo = t.children
         tipo, secreto = self.expr(expr)
         elem = None
@@ -265,17 +265,17 @@ class Verificador:
         """Atributos sintetizados de uma expressão: (tipo, secreto)."""
         return getattr(self, "e_" + e.data)(e)
 
-    def e_int_lit(self, e):  return "int", False
-    def e_str_lit(self, e):  return "string", False
-    def e_bool_lit(self, e): return "bool", False
+    def e_intlit(self, e):  return "int", False
+    def e_strlit(self, e):  return "string", False
+    def e_boollit(self, e): return "bool", False
 
-    def e_ip_lit(self, e):
+    def e_iplit(self, e):
         tok = e.children[0]
         if any(int(o) > 255 for o in str(tok).split(".")):
             self.diag("E701", tok.line, f"'{tok}' não é um endereço IPv4 válido")
         return "ip", False
 
-    def e_cidr_lit(self, e):
+    def e_cidrlit(self, e):
         tok = e.children[0]
         endereco, prefixo = str(tok).split("/")
         if any(int(o) > 255 for o in endereco.split(".")):
@@ -284,7 +284,7 @@ class Verificador:
             self.diag("E702", tok.line, f"o prefixo /{prefixo} é inválido (máximo /32)")
         return "cidr", False
 
-    def e_dur_lit(self, e):
+    def e_durlit(self, e):
         self.literal_duracao(e.children[0])
         return "duration", False
 
@@ -301,7 +301,7 @@ class Verificador:
         s.usado = True
         return s.tipo, s.tipo_simbolo == "secret"
 
-    def e_field_access(self, e):
+    def e_fieldaccess(self, e):
         alvo, campo = e.children
         tipo, secreto = self.expr(alvo)
         if tipo is None:
@@ -324,7 +324,7 @@ class Verificador:
             return None, False
         return self.chamada(nome, args, como_instrucao=False)
 
-    def e_list_lit(self, e):
+    def e_listlit(self, e):
         itens = [i for i in e.children if i is not None]
         linha = e.meta.line
         if not itens:
@@ -337,7 +337,7 @@ class Verificador:
             return None, any(s for _, s in tipos)
         return ("list", conhecidos.pop() if conhecidos else None), any(s for _, s in tipos)
 
-    def e_not_(self, e):
+    def e_notop(self, e):
         tipo, sec = self.expr(e.children[0])
         if not compativel("bool", tipo):
             self.diag("E307", e.meta.line, f"'not' precisa de um bool, mas recebeu {nome_tipo(tipo)}")
@@ -350,8 +350,8 @@ class Verificador:
                 self.diag("E307", e.meta.line, f"'{op}' precisa de operandos bool, mas recebeu {nome_tipo(t)}")
         return "bool", sa or sb
 
-    def e_and_(self, e): return self._logico(e, "and")
-    def e_or_(self, e):  return self._logico(e, "or")
+    def e_andop(self, e): return self._logico(e, "and")
+    def e_orop(self, e):  return self._logico(e, "or")
 
     def e_arith(self, e):
         a, op, b = e.children
@@ -367,7 +367,7 @@ class Verificador:
             return None, sa or sb
         return ta, sa or sb
 
-    def e_cmp(self, e):
+    def e_comparison(self, e):
         a, op, b = e.children
         (ta, sa), (tb, sb) = self.expr(a), self.expr(b)
         op = str(op.children[0])

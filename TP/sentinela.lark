@@ -1,58 +1,72 @@
-// ===== Sentinela v1.1 (núcleo reduzido + execução contínua) =====
+// =====================================================================
+//  Sentinela v1.3 — gramática completa (Lark, LALR(1) sem conflitos)
+//
+//  Convenção de nomes (igual em sentinela.lark, GRAMATICA.md e
+//  sentinela_ag.py): inglês, como as palavras reservadas, minúsculas e
+//  sem "_" (o LarkAG usa "_" internamente para numerar alternativas).
+//  As regras com "?" são inlined pelo Lark; os "-> nome" dão nome aos
+//  nós da árvore que o verificador (verificador.py) percorre.
+// =====================================================================
 
-start: alert_decl* playbook
+// ---------- Programa ----------
+start: alert* playbook
 
-// ---------- Declarações ----------
-alert_decl: "alert" NAME "{" field* "}"
-field: NAME ":" type ";"
+// ---------- Alertas (esquemas dos eventos recebidos) ----------
+alert: "alert" NAME "{" field* "}"
+field: NAME ":" datatype ";"
 
-playbook: "playbook" NAME "{" var_decl* handler+ "}"
-?handler: "on" NAME "as" NAME block     -> on_handler
-        | "every" DURATION block          -> every_handler
+?datatype: basictype
+         | "list" "<" datatype ">"         -> listtype
+!basictype: "int" | "bool" | "string" | "ip" | "cidr" | "duration"
 
-?type: basic_type
-     | "list" "<" type ">"           -> list_type
-!basic_type: "int" | "bool" | "string" | "ip" | "cidr" | "duration"
+// ---------- Playbook (serviço sempre ativo) ----------
+playbook: "playbook" NAME "{" vardecl* handler+ "}"
+
+?handler: "on" NAME "as" NAME block        -> onhandler
+        | "every" DURATION block           -> everyhandler
 
 // ---------- Instruções ----------
 block: "{" stmt* "}"
 
-?stmt: var_decl
+?stmt: vardecl
      | assign
-     | if_stmt
-     | for_stmt
+     | ifstmt
+     | forstmt
      | action
 
-var_decl: decl_kind NAME ":" type "=" expr ";"
-!decl_kind: "var" | "secret"
+vardecl: declkind NAME ":" datatype "=" expr ";"
+!declkind: "var" | "secret"
 assign: NAME "=" expr ";"
-if_stmt: "if" "(" expr ")" block ["else" block]
-for_stmt: "for" NAME "in" expr block
+ifstmt: "if" "(" expr ")" block ["else" block]
+forstmt: "for" NAME "in" expr block
 action: NAME "(" [expr ("," expr)*] ")" ";"
 
-// ---------- Expressões ----------
-?expr: expr "or" and_expr            -> or_
-     | and_expr
-?and_expr: and_expr "and" not_expr   -> and_
-         | not_expr
-?not_expr: "not" not_expr            -> not_
-         | cmp_expr
-?cmp_expr: add_expr cmp_op add_expr  -> cmp
-         | add_expr
-?add_expr: add_expr add_op atom      -> arith
-         | atom
-?atom: NAME                          -> var
-     | atom "." NAME                 -> field_access
-     | NAME "(" [expr ("," expr)*] ")" -> call
-     | literal
-     | "(" expr ")"
-     | "[" [expr ("," expr)*] "]"    -> list_lit
+// ---------- Expressões (da menor para a maior precedência) ----------
+?expr: expr "or" andexpr                   -> orop
+     | andexpr
+?andexpr: andexpr "and" notexpr            -> andop
+        | notexpr
+?notexpr: "not" notexpr                    -> notop
+        | relexpr
+?relexpr: addexpr relop addexpr            -> comparison
+        | addexpr
+?addexpr: addexpr addop accessexpr         -> arith
+        | accessexpr
+?accessexpr: accessexpr "." NAME           -> fieldaccess
+           | primary
+?primary: NAME                             -> var
+        | NAME "(" [expr ("," expr)*] ")"  -> call
+        | "(" expr ")"
+        | "[" [expr ("," expr)*] "]"       -> listlit
+        | INT                              -> intlit
+        | STRING                           -> strlit
+        | CIDR                             -> cidrlit
+        | IP                               -> iplit
+        | DURATION                         -> durlit
+        | BOOL                             -> boollit
 
-?literal: INT -> int_lit | STRING -> str_lit | CIDR -> cidr_lit
-        | IP -> ip_lit | DURATION -> dur_lit | BOOL -> bool_lit
-
-!cmp_op: "==" | "!=" | "<" | ">" | "<=" | ">=" | "in"
-!add_op: "+" | "-"
+!relop: "==" | "!=" | "<" | ">" | "<=" | ">=" | "in"
+!addop: "+" | "-"
 
 // ---------- Terminais ----------
 BOOL.2: "true" | "false"
