@@ -1,9 +1,9 @@
 # Sentinela: uma linguagem para playbooks de resposta a incidentes de segurança e de rede
 
-## Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering
+**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**
 *Mestrado em Engenharia Informática, Universidade do Minho*
 
-| Grupo | |
+| Grupo 7 | |
 |---|---|
 | Ivo Sousa | PG63976 |
 | Miguel Páscoa | PG64007 |
@@ -30,11 +30,9 @@ Nas plataformas atuais, os playbooks são escritos em YAML ou montados com bloco
 
 A **Sentinela** é uma linguagem de domínio específico para escrever playbooks **legíveis e verificáveis antes de serem ativados**.
 
-| | |
-|---|---|
-| **Utilizadores** | analistas de segurança e engenheiros de redes e de operações |
-| **Conceitos** | *alerta* (evento com campos tipados), *playbook* (conjunto de reações com estado), *handler* (reação a um alerta ou à passagem do tempo), *ação* (operação sobre a rede), *segredo* (credencial que não pode ser exposta) |
-| **Como as construções servem o domínio** | tipos de rede (`ip`, `cidr`, `duration`) evitam confundir um IP com uma rede; `secret` torna a confidencialidade verificável; os esquemas `alert` documentam e validam os dados recebidos; ações destrutivas sem condição são assinaladas |
+- **Utilizadores**: analistas de segurança e engenheiros de redes e de operações 
+- **Conceitos**: *alerta* (evento com campos tipados), *playbook* (conjunto de reações com estado), *handler* (reação a um alerta ou à passagem do tempo), *ação* (operação sobre a rede), *segredo* (credencial que não pode ser exposta) 
+- **Como as construções servem o domínio**: tipos de rede (`ip`, `cidr`, `duration`) evitam confundir um IP com uma rede; `secret` torna a confidencialidade verificável; os esquemas `alert` documentam e validam os dados recebidos; ações destrutivas sem condição são assinaladas 
 
 ### 1.2 Modelo de execução
 
@@ -388,7 +386,3 @@ python sentinela.py --arvore exemplos/01_port_scan.snt   # com a árvore sintát
 python metricas.py                               # métricas de qualidade
 pytest -q                                        # testes automáticos
 ```
-
-## 6. Ligação à Parte II
-
-A árvore anotada pela gramática de atributos (tipos, scopes, segredos) é a base da Parte II: **representar** cada handler como um grafo de fluxo de controlo, **analisar** código inalcançável e ações destrutivas alcançáveis sem condição, **visualizar** os playbooks e **transformar** playbooks em regras `nftables`.
