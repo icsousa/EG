@@ -1,7 +1,7 @@
 # Sentinela: uma linguagem para playbooks de resposta a incidentes de segurança e de rede
 
-**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**
-Mestrado em Engenharia Informática, Universidade do Minho
+## Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering
+*Mestrado em Engenharia Informática, Universidade do Minho*
 
 | Grupo | |
 |---|---|
@@ -9,7 +9,7 @@ Mestrado em Engenharia Informática, Universidade do Minho
 | Miguel Páscoa | PG64007 |
 | Ricardo Eusébio | PG64022 |
 
-Este README é o relatório deste checkpoint e segue as quatro tarefas do guião. A linguagem está definida **num só ficheiro**, `sentinela.ag`: a gramática, os atributos, as regras de cálculo e as condições de contexto, em **LarkAG**.
+A linguagem está definida em `sentinela.ag`: a gramática, os atributos, as regras de cálculo e as condições de contexto, em **LarkAG**.
 
 | Tarefa do guião | Secção | Documento completo |
 |---|---|---|
@@ -84,12 +84,12 @@ playbook brute_force_ssh {
 
 ### 1.5 Casos práticos
 
-| Nível | Ficheiro | Ataque real | O que exercita |
-|---|---|---|---|
-| Fácil | `exemplos/01_port_scan.snt` | `nmap -sS` | `if/else`, `in` sobre listas, `block_ip` |
-| Fácil | `exemplos/02_brute_force_ssh.snt` | `hydra` | `count`, `and`/`not`, `ip in cidr` |
-| Intermédio | `exemplos/03_syn_flood.snt` | `hping3 -S --flood` | `for` com `if` aninhado, contador, *whitelist* |
-| Difícil | `exemplos/04_arp_spoofing.snt` | `arpspoof` | `secret`, estado persistente, handler `every`, várias ações |
+| Ficheiro | Ataque real | O que exercita |
+|---|---|---|
+| `exemplos/01_port_scan.snt` | `nmap -sS` | `if/else`, `in` sobre listas, `block_ip` |
+| `exemplos/02_brute_force_ssh.snt` | `hydra` | `count`, `and`/`not`, `ip in cidr` |
+| `exemplos/03_syn_flood.snt` | `hping3 -S --flood` | `for` com `if` aninhado, contador, *whitelist* |
+| `exemplos/04_arp_spoofing.snt` | `arpspoof` | `secret`, estado persistente, handler `every`, várias ações |
 
 ---
 
@@ -270,7 +270,7 @@ Só com as declarações, sem olhar para nenhuma regra de cálculo, já se leem 
 | `const` ↑ nas expressões | constantes como `if (true)` ou `log("")` são **assinaladas** |
 | `warnings` é um atributo, os erros são CC | **dois níveis**: erros impedem a ativação, avisos não |
 
-### 3.3 Gramática anotada (exemplos)
+### 3.3 Gramática Anotada (exemplos)
 
 `GRAMATICA.md` (§4) tem as regras de **todas** as produções. Quatro exemplos:
 
@@ -283,7 +283,7 @@ Só com as declarações, sem olhar para nenhuma regra de cálculo, já se leem 
 
 A gramática é **L-atribuída**: os atributos herdados dependem só do pai e dos irmãos à esquerda (por exemplo, P19), por isso uma travessia da esquerda para a direita avalia tudo.
 
-### 3.4 Propriedades verificadas
+### 3.4 Propriedades Verificadas
 
 | Família | Códigos | Exemplos sintaticamente corretos mas inválidos |
 |---|---|---|
@@ -336,7 +336,7 @@ $ python sentinela.py testes/E204_campo_inexistente.snt testes/E601_segredo_no_l
 
 ---
 
-## 4. Qualidade da linguagem e da gramática
+## 4. Qualidade da Linguagem e da Gramática
 
 Avaliação completa, segundo o NB07, em `QUALIDADE.md`. As métricas são calculadas por `python metricas.py`.
 
@@ -364,7 +364,7 @@ Avaliação completa, segundo o NB07, em `QUALIDADE.md`. As métricas são calcu
 
 ---
 
-## 5. Repositório e execução
+## 5. Repositório e Execução
 
 | Ficheiro / pasta | O que é |
 |---|---|
