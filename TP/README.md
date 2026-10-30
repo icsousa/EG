@@ -9,19 +9,25 @@
 | Miguel Páscoa | PG64007 |
 | Ricardo Eusébio | PG64022 |
 
-A linguagem está definida em `sentinela.ag`: a gramática, os atributos, as regras de cálculo e as condições de contexto, em **LarkAG**.
+A linguagem está definida em [`sentinela.ag`](sentinela.ag): a gramática, os atributos, as regras de cálculo e as condições de contexto, em **LarkAG**.
 
-| Tarefa do guião | Secção | Documento completo |
-|---|---|---|
-| 1. Desenho da linguagem | [§1](#1-desenho-da-linguagem) | `exemplos/`, `CATALOGO_ERROS.md` |
-| 2. Especificação léxica e sintática | [§2](#2-especificação-léxica-e-sintática) | `GRAMATICA.md` (§1–2), `sentinela.ag` |
-| 3. Especificação semântica | [§3](#3-especificação-semântica) | `GRAMATICA.md` (§3–6), `sentinela.ag`, `CATALOGO_ERROS.md` |
-| 4. Qualidade da linguagem e da gramática | [§4](#4-qualidade-da-linguagem-e-da-gramática) | `QUALIDADE.md`, `metricas.py` |
+<a id="indice"></a>
+## Índice
+
+| | Capítulo | Documentos de detalhe |
+|:-:|---|---|
+| **1** | **[Desenho da linguagem](#desenho)**<br>[Domínio e problema](#dominio) · [Modelo de execução](#execucao) · [Exemplo](#exemplo) · [Construções e requisitos](#construcoes) · [Casos práticos](#casos) | [`exemplos/`](exemplos/) · [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md) |
+| **2** | **[Especificação léxica e sintática](#sintaxe)**<br>[Léxico](#lexico) · [Gramática (BNF)](#gramatica) | [`GRAMATICA.md`](GRAMATICA.md) · [`sentinela.ag`](sentinela.ag) |
+| **3** | **[Especificação semântica](#semantica)**<br>[Declaração dos atributos](#atributos) · [O que as declarações dizem](#leitura) · [Gramática anotada](#anotada) · [Propriedades verificadas](#propriedades) · [Implementação em LarkAG](#larkag) | [`GRAMATICA.md`](GRAMATICA.md) · [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md) |
+| **4** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`QUALIDADE.md`](QUALIDADE.md) · [`metricas.py`](metricas.py) |
+| **5** | **[Repositório e execução](#repositorio)** | [`sentinela.py`](sentinela.py) · [`testes/`](testes/) |
 
 ---
 
+<a id="desenho"></a>
 ## 1. Desenho da linguagem
 
+<a id="dominio"></a>
 ### 1.1 Domínio e problema
 
 As equipas de segurança (SOC) e de redes automatizam a resposta a ataques com **playbooks**: programas que, quando chega um alerta (um *port scan*, uma tentativa de força bruta, um *flood*), executam ações como bloquear um IP, limitar tráfego ou isolar uma máquina.
@@ -34,6 +40,7 @@ A **Sentinela** é uma linguagem de domínio específico para escrever playbooks
 - **Conceitos**: *alerta* (evento com campos tipados), *playbook* (conjunto de reações com estado), *handler* (reação a um alerta ou à passagem do tempo), *ação* (operação sobre a rede), *segredo* (credencial que não pode ser exposta) 
 - **Como as construções servem o domínio**: tipos de rede (`ip`, `cidr`, `duration`) evitam confundir um IP com uma rede; `secret` torna a confidencialidade verificável; os esquemas `alert` documentam e validam os dados recebidos; ações destrutivas sem condição são assinaladas 
 
+<a id="execucao"></a>
 ### 1.2 Modelo de execução
 
 Um playbook é um **serviço sempre ativo**. Antes de ser ativado, passa pela gramática de atributos: **com um erro não é ativado**; com avisos é ativado e os avisos ficam registados.
@@ -44,6 +51,7 @@ Um playbook é um **serviço sempre ativo**. Antes de ser ativado, passa pela gr
 - as variáveis de um handler são criadas de novo em cada execução;
 - os handlers correm um de cada vez, pela ordem dos eventos.
 
+<a id="exemplo"></a>
 ### 1.3 Exemplo
 
 ```
@@ -66,6 +74,7 @@ playbook brute_force_ssh {
 }
 ```
 
+<a id="construcoes"></a>
 ### 1.4 Construções e requisitos mínimos do guião
 
 | Requisito do guião | Na Sentinela |
@@ -75,24 +84,30 @@ playbook brute_force_ssh {
 | Expressões e manipulação de estado | `or and not`, `== != < > <= >= in`, `+ -`, acesso a campos (`a.src_ip`), atribuição `x = expr;` e estado persistente |
 | Construções compostas e aninhadas | handlers com blocos `if`/`else` e `for` aninhados |
 | Ramificação e repetição | `if (…) { … } else { … }` e `for x in lista { … }`; a repetição no tempo é dada pelos handlers `every` |
-| Propriedades que a sintaxe não determina | 32 erros e 6 avisos semânticos (§3) |
+| Propriedades que a sintaxe não determina | 32 erros e 6 avisos semânticos ([§3](#semantica)) |
 
 **Tipos:** `int`, `bool`, `string`, `ip`, `cidr`, `duration`, `list<T>`.
-**Ações:** `block_ip`, `unblock_ip`, `quarantine`, `rate_limit`, `log`, `notify`. **Funções:** `count`, `len`, `str`.
+**Ações:** `block_ip`, `unblock_ip`, `quarantine`, `rate_limit`, `log`, `notify`. 
+**Funções:** `count`, `len`, `str`.
 
+<a id="casos"></a>
 ### 1.5 Casos práticos
 
 | Ficheiro | Ataque real | O que exercita |
 |---|---|---|
-| `exemplos/01_port_scan.snt` | `nmap -sS` | `if/else`, `in` sobre listas, `block_ip` |
-| `exemplos/02_brute_force_ssh.snt` | `hydra` | `count`, `and`/`not`, `ip in cidr` |
-| `exemplos/03_syn_flood.snt` | `hping3 -S --flood` | `for` com `if` aninhado, contador, *whitelist* |
-| `exemplos/04_arp_spoofing.snt` | `arpspoof` | `secret`, estado persistente, handler `every`, várias ações |
+| [`01_port_scan.snt`](exemplos/01_port_scan.snt) | `nmap -sS` | `if/else`, `in` sobre listas, `block_ip` |
+| [`02_brute_force_ssh.snt`](exemplos/02_brute_force_ssh.snt) | `hydra` | `count`, `and`/`not`, `ip in cidr` |
+| [`03_syn_flood.snt`](exemplos/03_syn_flood.snt) | `hping3 -S --flood` | `for` com `if` aninhado, contador, *whitelist* |
+| [`04_arp_spoofing.snt`](exemplos/04_arp_spoofing.snt) | `arpspoof` | `secret`, estado persistente, handler `every`, várias ações |
+
+[↑ Voltar ao índice](#indice)
 
 ---
 
+<a id="sintaxe"></a>
 ## 2. Especificação léxica e sintática
 
+<a id="lexico"></a>
 ### 2.1 Léxico
 
 | Token | Definição | Exemplo |
@@ -110,9 +125,10 @@ playbook brute_force_ssh {
 
 Os literais de rede têm **prioridades** no lexer (`CIDR` > `IP` > `DURATION` > `INT`), para `10.0.0.0/8` ser um só token. A validade dos valores (octetos ≤ 255, prefixo ≤ 32, duração > 0) é verificada na **semântica**.
 
+<a id="gramatica"></a>
 ### 2.2 Gramática (BNF)
 
-As produções são as de `sentinela.ag`, com a mesma numeração. As listas usam **recursão à esquerda** (como `decls → decls decl` nas aulas), que é a forma que permite passar o ambiente de uma declaração para a seguinte.
+As produções são as de [`sentinela.ag`](sentinela.ag), com a mesma numeração. As listas usam **recursão à esquerda** (como `decls → decls decl` nas aulas), que é a forma que permite passar o ambiente de uma declaração para a seguinte.
 
 ```
 P1   start      → alerts playbook
@@ -182,12 +198,16 @@ P55  items      → expr
 | **Associatividade** | à esquerda (recursão à esquerda); comparações não associativas |
 | **Sem *dangling else*** | os blocos levam sempre `{ }` |
 
+[↑ Voltar ao índice](#indice)
+
 ---
 
+<a id="semantica"></a>
 ## 3. Especificação semântica
 
-A semântica é especificada por uma **gramática de atributos**: a gramática da §2 anotada com atributos e, em cada produção, com regras de cálculo (ER) e condições de contexto (CC). Um programa é **válido** se todas as condições de contexto forem verdadeiras. Toda a gramática de atributos está implementada em **LarkAG**, em `sentinela.ag`.
+A semântica é especificada por uma **gramática de atributos**: a gramática da [§2](#gramatica) anotada com atributos e, em cada produção, com regras de cálculo (ER) e condições de contexto (CC). Um programa é **válido** se todas as condições de contexto forem verdadeiras. Toda a gramática de atributos está implementada em **LarkAG**, em [`sentinela.ag`](sentinela.ag).
 
+<a id="atributos"></a>
 ### 3.1 Declaração dos atributos
 
 Para cada símbolo, os atributos que tem, se são herdados (↓) ou sintetizados (↑) e o seu domínio:
@@ -246,8 +266,9 @@ A(X)          = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
                 para X ∈ {expr, andexpr, notexpr, relexpr, addexpr, accessexpr, primary}
 ```
 
-Domínios: `Tipo = {int, bool, string, ip, cidr, duration} ∪ {list<T>} ∪ {A:n}`, `Espécie = {var, secret, loop, alias}`, `Env = Nome ⇀ Tipo × Espécie`, `Scope = ℘(Nome)`, `AlertTab = Nome ⇀ (Nome ⇀ Tipo)`, `Level = {top, inner}`, `Warning = (código, linha, mensagem)`. Definições completas em `GRAMATICA.md` (§3.1).
+Domínios: `Tipo = {int, bool, string, ip, cidr, duration} ∪ {list<T>} ∪ {A:n}`, `Espécie = {var, secret, loop, alias}`, `Env = Nome ⇀ Tipo × Espécie`, `Scope = ℘(Nome)`, `AlertTab = Nome ⇀ (Nome ⇀ Tipo)`, `Level = {top, inner}`, `Warning = (código, linha, mensagem)`. Definições completas em [`GRAMATICA.md`](GRAMATICA.md) (§3.1).
 
+<a id="leitura"></a>
 ### 3.2 O que as declarações dizem sobre a semântica
 
 Só com as declarações, sem olhar para nenhuma regra de cálculo, já se leem as regras da linguagem:
@@ -268,9 +289,10 @@ Só com as declarações, sem olhar para nenhuma regra de cálculo, já se leem 
 | `const` ↑ nas expressões | constantes como `if (true)` ou `log("")` são **assinaladas** |
 | `warnings` é um atributo, os erros são CC | **dois níveis**: erros impedem a ativação, avisos não |
 
+<a id="anotada"></a>
 ### 3.3 Gramática Anotada (exemplos)
 
-`GRAMATICA.md` (§4) tem as regras de **todas** as produções. Quatro exemplos:
+[`GRAMATICA.md`](GRAMATICA.md) (§4) tem as regras de **todas** as produções. Quatro exemplos:
 
 | Produção | Regras de cálculo (ER) | Condições de contexto (CC) |
 |---|---|---|
@@ -281,6 +303,7 @@ Só com as declarações, sem olhar para nenhuma regra de cálculo, já se leem 
 
 A gramática é **L-atribuída**: os atributos herdados dependem só do pai e dos irmãos à esquerda (por exemplo, P19), por isso uma travessia da esquerda para a direita avalia tudo.
 
+<a id="propriedades"></a>
 ### 3.4 Propriedades Verificadas
 
 | Família | Códigos | Exemplos sintaticamente corretos mas inválidos |
@@ -294,11 +317,12 @@ A gramática é **L-atribuída**: os atributos herdados dependem só do pai e do
 | Literais de rede | E701–E703 | `300.1.1.1` · `10.0.0.0/40` · `block_ip(x, 0h)` |
 | **Avisos** | W01–W06 | ação destrutiva fora de um `if`; variável não usada; *shadowing*; alerta sem `on`; condição constante; `log("")` |
 
-Catálogo completo, com a regra de cada código: `CATALOGO_ERROS.md`.
+Catálogo completo, com a regra de cada código: [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md).
 
+<a id="larkag"></a>
 ### 3.5 Implementação em LarkAG
 
-`sentinela.ag` declara os atributos e anota cada produção no formato das aulas. Por exemplo, a declaração de variáveis (P21):
+[`sentinela.ag`](sentinela.ag) declara os atributos e anota cada produção no formato das aulas. Por exemplo, a declaração de variáveis (P21):
 
 ```
 IA(vardecl) { env : dict[str, tuple[str, str]], scope : set[str], alerttab : dict[str, dict[str, str]], level : str }
@@ -319,7 +343,7 @@ CC {
 }
 ```
 
-`sentinela.py` gera o parser LALR(1) e o avaliador de atributos a partir de `sentinela.ag`. O **primeiro** erro pára a avaliação (como num compilador) e é reportado com a linha; os avisos são o atributo `warnings` da raiz:
+[`sentinela.py`](sentinela.py) gera o parser LALR(1) e o avaliador de atributos a partir de `sentinela.ag`. O **primeiro** erro pára a avaliação (como num compilador) e é reportado com a linha; os avisos são o atributo `warnings` da raiz:
 
 ```
 $ python sentinela.py testes/E204_campo_inexistente.snt testes/E601_segredo_no_log.snt testes/W06_mensagem_vazia.snt exemplos/04_arp_spoofing.snt
@@ -332,11 +356,14 @@ $ python sentinela.py testes/E204_campo_inexistente.snt testes/E601_segredo_no_l
 ✔ ativo  exemplos/04_arp_spoofing.snt
 ```
 
+[↑ Voltar ao índice](#indice)
+
 ---
 
+<a id="qualidade"></a>
 ## 4. Qualidade da Linguagem e da Gramática
 
-Avaliação completa, segundo o NB07, em `QUALIDADE.md`. As métricas são calculadas por `python metricas.py`.
+Avaliação completa, segundo o NB07, em [`QUALIDADE.md`](QUALIDADE.md). As métricas são calculadas por [`metricas.py`](metricas.py).
 
 | Fator da linguagem | Avaliação |
 |---|---|
@@ -347,33 +374,44 @@ Avaliação completa, segundo o NB07, em `QUALIDADE.md`. As métricas são calcu
 | Documentação | média: só comentários de linha; os esquemas `alert` documentam os dados de forma verificável |
 | Extensibilidade, modularidade | baixas, **por opção**, para manter a linguagem pequena |
 
-| Métrica da GIC | Valor | | Métrica da GA | Valor |
-|---|---|---|---|---|
-| Não-terminais | 25 | | Atributos (herdados / sintetizados) | 123 (44 / 79) |
-| Terminais | 46 | | Regras de cálculo | 354 |
-| Produções | 65 | | das quais regras de cópia | 190 (54 %) |
-| Produções unitárias | 10 | | Condições de contexto | 54 |
-| Estados LALR | 132 | | Códigos de erro | 32 |
+| Métrica da GIC | Valor | 
+|---|---|
+| Não-terminais | 25 | 
+| Terminais | 46 | 
+| Produções | 65 | 
+| Produções unitárias | 10 | 
+| Estados LALR | 132 | 
+
+| Métrica da GA | Valor |
+|---|---|
+| Atributos (herdados / sintetizados) | 123 (44 / 79) |
+| Regras de cálculo | 354 |
+| das quais regras de cópia | 190 (54 %) |
+| Condições de contexto | 54 |
+| Códigos de erro | 32 |
 
 - **Tamanho controlado:** a proposta inicial tinha 45 não-terminais e 110 produções; a versão atual tem 25 e 65, numa só gramática.
 - **Recursão** consistentemente à esquerda; a única à direita é o prefixo `not`.
 - **A GA parece grande, mas a lógica é pequena:** 54 % das regras são cópias que passam o contexto de pai para filho, obrigatórias no LarkAG. A verificação real está em 164 regras e 54 condições.
 - **Limite:** as métricas descrevem a estrutura, não a facilidade de uso. Uma comparação empírica com YAML fica como trabalho futuro.
 
+[↑ Voltar ao índice](#indice)
+
 ---
 
+<a id="repositorio"></a>
 ## 5. Repositório e Execução
 
 | Ficheiro / pasta | O que é |
 |---|---|
-| `sentinela.ag` | **a linguagem**: gramática, atributos, regras de cálculo e condições de contexto (LarkAG) |
-| `sentinela.py` | processador: gera o parser e o avaliador a partir de `sentinela.ag` e verifica playbooks |
-| `GRAMATICA.md` | especificação em notação matemática: léxico, BNF (P1–P55) e gramática de atributos |
-| `CATALOGO_ERROS.md` | modelo de execução, regras de tipos e catálogo de todos os erros e avisos |
-| `QUALIDADE.md` | avaliação de qualidade (tarefa 4) |
-| `metricas.py` | métricas de qualidade da GIC e da GA |
-| `exemplos/` | os 4 casos práticos (ativos, sem avisos) |
-| `testes/` | um programa por código de erro ou aviso, com `# expect: CÓDIGO` na linha do problema |
+| [`sentinela.ag`](sentinela.ag) | **a linguagem**: gramática, atributos, regras de cálculo e condições de contexto (LarkAG) |
+| [`sentinela.py`](sentinela.py) | processador: gera o parser e o avaliador a partir de `sentinela.ag` e verifica playbooks |
+| [`GRAMATICA.md`](GRAMATICA.md) | especificação em notação matemática: léxico, BNF (P1–P55) e gramática de atributos |
+| [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md) | modelo de execução, regras de tipos e catálogo de todos os erros e avisos |
+| [`QUALIDADE.md`](QUALIDADE.md) | avaliação de qualidade (tarefa 4) |
+| [`metricas.py`](metricas.py) | métricas de qualidade da GIC e da GA |
+| [`exemplos/`](exemplos/) | os 4 casos práticos (ativos, sem avisos) |
+| [`testes/`](testes/) | um programa por código de erro ou aviso, com `# expect: CÓDIGO` na linha do problema |
 | `test_*.py` | testes automáticos (`pytest`) |
 
 ```bash
@@ -386,3 +424,5 @@ python sentinela.py --arvore exemplos/01_port_scan.snt   # com a árvore sintát
 python metricas.py                               # métricas de qualidade
 pytest -q                                        # testes automáticos
 ```
+
+[↑ Voltar ao índice](#indice)
