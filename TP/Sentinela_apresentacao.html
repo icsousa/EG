@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinela · Checkpoint 1 · Grupo 7</title>
+<style>
+:root{
+  --bg:#0b1220; --bg2:#111a2e; --panel:#16223b; --line:#26355a;
+  --ink:#e8eefc; --mute:#9fb0d0; --dim:#6b7ea3;
+  --accent:#36d6c3; --accent2:#5aa9ff; --warn:#ffb547; --err:#ff6b6b; --ok:#5fe08a;
+  --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#05080f;color:var(--ink);font-family:var(--sans);overflow:hidden}
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{width:1280px;height:720px;position:relative;transform-origin:center center;flex:none}
+.slide{position:absolute;inset:0;background:radial-gradient(1200px 600px at 85% -10%,#173058 0%,transparent 60%),linear-gradient(160deg,var(--bg2),var(--bg));
+  border-radius:14px;padding:56px 72px 64px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.slide.active{display:flex;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.slide::after{content:"";position:absolute;left:72px;right:72px;bottom:44px;height:1px;background:var(--line)}
+.foot{position:absolute;left:72px;right:72px;bottom:16px;display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
+.kicker{font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px}
+h1{font-size:64px;line-height:1.02;letter-spacing:-.02em}
+h2{font-size:34px;line-height:1.14;letter-spacing:-.01em;margin-bottom:18px;max-width:1120px}
+h3{font-size:20px;color:var(--accent);margin-bottom:10px}
+p,li{font-size:21px;line-height:1.45;color:var(--ink)}
+.mute{color:var(--mute)} .small{font-size:16px} .tiny{font-size:14px}
+ul{padding-left:24px} li{margin:6px 0} li::marker{color:var(--accent)}
+b,strong{color:#fff}
+.grid{display:grid;gap:22px}
+.g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.g55{grid-template-columns:1.15fr .85fr} .g64{grid-template-columns:1.25fr .75fr}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card p,.card li{font-size:18px}
+.card h3{font-size:19px}
+.pill{display:inline-block;font-family:var(--mono);font-size:14px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:#0e1730;color:var(--mute);margin:2px 4px 2px 0}
+.e{color:var(--err);border-color:#5a2630;background:#2a1218}
+.w{color:var(--warn);border-color:#5a4520;background:#2a2112}
+.o{color:var(--ok);border-color:#22513a;background:#10251a}
+.big{font-size:56px;font-weight:800;color:var(--accent);line-height:1}
+.big.w2{color:var(--warn)} .big.b2{color:var(--accent2)}
+.stat .lbl{font-size:16px;color:var(--mute);margin-top:6px}
+pre{font-family:var(--mono);font-size:15.5px;line-height:1.5;background:#070c18;border:1px solid var(--line);border-radius:12px;padding:16px 18px;color:#d6e2ff;overflow:hidden;white-space:pre}
+pre.sm{font-size:13.5px;line-height:1.45}
+code{font-family:var(--mono);font-size:.88em;background:#0c1428;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#cfe3ff}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+.k{color:#c792ea}.t{color:#5aa9ff}.s{color:#c3e88d}.c{color:#6b7ea3;font-style:italic}.n{color:#f78c6c}.f{color:#36d6c3}.x{color:#ff6b6b}
+table{border-collapse:collapse;width:100%;font-size:17px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--accent);font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+td{color:var(--ink)}
+.flow{display:flex;align-items:center;gap:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:center;font-size:17px}
+.box b{display:block;font-size:19px;margin-bottom:4px}
+.arrow{color:var(--accent);font-size:28px;flex:none}
+.tag{font-family:var(--mono);font-size:13px;color:var(--dim)}
+.hl{border-left:4px solid var(--accent);padding-left:16px}
+.title-slide{justify-content:center}
+.title-slide h1 span{color:var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin-right:8px}
+.term{background:#05070d}
+.term .ok{color:var(--ok)} .term .bad{color:var(--err)} .term .wr{color:var(--warn)} .term .pr{color:var(--accent)}
+.note{position:absolute;right:72px;top:56px;font-size:13px;color:var(--dim)}
+.timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative}
+.timeline .card{position:relative}
+.timeline .ver{font-family:var(--mono);color:var(--accent);font-weight:700;font-size:18px}
+.fam{display:flex;flex-direction:column;gap:4px;padding:14px 16px}
+.fam .n{font-size:28px;font-weight:800;line-height:1}
+.fam h3{font-size:17px;margin-bottom:2px}
+.fam p{font-size:14px!important;line-height:1.4}
+.bar{height:10px;border-radius:6px;background:#0e1730;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.ladder div{font-family:var(--mono);font-size:15px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;margin:5px 0;background:var(--panel)}
+.ladder span{color:var(--dim)}
+/* UI */
+#ui{position:fixed;left:0;right:0;bottom:0;height:4px;background:#0e1730;z-index:5}
+#progress{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s}
+#nav{position:fixed;right:14px;top:12px;display:flex;gap:8px;z-index:6;opacity:0;transition:opacity .2s}
+#nav:hover{opacity:1}
+#nav button{background:#111a2e;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer}
+#notes{position:fixed;left:0;right:0;bottom:4px;max-height:34vh;overflow:auto;background:rgba(8,12,24,.97);border-top:1px solid var(--line);padding:16px 24px;font-size:17px;line-height:1.5;color:#dbe6ff;display:none;z-index:4}
+#notes.show{display:block}
+#notes h4{color:var(--accent);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+aside.notes{display:none}
+#help{position:fixed;left:50%;transform:translateX(-50%);top:12px;font-size:13px;color:#8aa0c8;background:rgba(10,16,30,.9);border:1px solid #26355a;border-radius:8px;padding:6px 12px;z-index:6;transition:opacity .6s}
+@media print{
+  html,body{overflow:visible;background:#fff}
+  #viewport{position:static;display:block}
+  #stage{transform:none!important;width:auto;height:auto}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;border-radius:0;box-shadow:none;animation:none}
+  #ui,#nav,#notes,#help{display:none!important}
+  @page{size:1280px 720px;margin:0}
+}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 · TÍTULO -->
+<section class="slide title-slide">
+  <div class="kicker">Engenharia Gramatical 2026/27 · Projeto, Parte I · Checkpoint 1</div>
+  <h1><span>Sentinela</span><br>uma linguagem para playbooks<br>de resposta a incidentes</h1>
+  <p class="mute" style="margin-top:22px;font-size:24px;max-width:900px">Playbooks de segurança e de rede <b>verificados antes de serem ativados</b>, especificados por uma gramática de atributos em LarkAG.</p>
+  <div style="margin-top:34px">
+    <span class="badge">Grupo 7</span>
+    <span class="badge">Ivo Sousa · PG63976</span>
+    <span class="badge">Miguel Páscoa · PG64007</span>
+    <span class="badge">Ricardo Eusébio · PG64022</span>
+  </div>
+  <p class="tiny mute" style="margin-top:26px">Mestrado em Engenharia Informática · Universidade do Minho</p>
+  <aside class="notes">Apresentar o grupo e o tema numa frase: "criámos uma linguagem para escrever playbooks de resposta a incidentes que são verificados antes de entrarem em produção". Dizer que vamos seguir as quatro tarefas do guião: desenho, sintaxe, semântica e qualidade.</aside>
+</section>
+
+<!-- 2 · AGENDA -->
+<section class="slide">
+  <div class="kicker">Roteiro</div>
+  <h2>O que vamos mostrar, pela ordem das tarefas do guião</h2>
+  <div class="grid g4" style="margin-top:10px">
+    <div class="card"><div class="big">1</div><h3 style="margin-top:12px">Desenho da linguagem</h3><p class="mute">Problema, domínio, modelo de execução, exemplos e casos práticos.</p></div>
+    <div class="card"><div class="big b2">2</div><h3 style="margin-top:12px">Léxico e sintaxe</h3><p class="mute">Tokens, gramática BNF P1–P55, LALR(1) sem conflitos.</p></div>
+    <div class="card"><div class="big">3</div><h3 style="margin-top:12px">Semântica</h3><p class="mute">Gramática de atributos em LarkAG: atributos, regras, 32 erros e 6 avisos.</p></div>
+    <div class="card"><div class="big w2">4</div><h3 style="margin-top:12px">Qualidade</h3><p class="mute">Fatores do NB07 e métricas da gramática e da GA.</p></div>
+  </div>
+  <p class="mute" style="margin-top:28px">E no fim: demonstração ao vivo, testes, limitações e o que fica para a Parte II.</p>
+  <aside class="notes">Slide rápido (10 s). Serve só para mostrar que a apresentação segue as tarefas 1 a 4 do guião.</aside>
+</section>
+
+<!-- 3 · PROBLEMA -->
+<section class="slide">
+  <div class="kicker">1 · O problema</div>
+  <h2>Os playbooks em YAML só revelam os erros durante um incidente real</h2>
+  <div class="grid g2" style="align-items:start">
+    <div>
+      <p class="mute small" style="margin-bottom:8px">Playbook numa plataforma SOAR (YAML): <b>aceite sem nenhum aviso</b></p>
+<pre><code>- name: block
+  action: block_ip
+  input: "{{ alert.<span class="x">sorce_ip</span> }}"        <span class="c"># ① campo mal escrito</span>
+- name: notify
+  action: send_email
+  body: "Chave: {{ <span class="x">secrets.api_key</span> }}" <span class="c"># ② segredo por email</span>
+- name: isolate
+  action: <span class="x">isolate_host</span>                 <span class="c"># ③ sem condição</span></code></pre>
+      <p class="small mute" style="margin-top:14px">São 3 da manhã, um IP faz milhares de tentativas de SSH… e o bloqueio falha porque o campo não existe.</p>
+    </div>
+    <div>
+      <p class="mute small" style="margin-bottom:8px">O mesmo playbook em <b>Sentinela</b>: rejeitado <b>antes</b> de ser ativado</p>
+      <div class="card" style="display:grid;gap:14px">
+        <div><span class="pill e">E204</span> ① o alerta não tem o campo <code>sorce_ip</code></div>
+        <div><span class="pill e">E601</span> ② um segredo não pode ir para uma mensagem</div>
+        <div><span class="pill w">W01</span> ③ ação destrutiva sem nenhuma condição</div>
+      </div>
+      <p class="hl" style="margin-top:22px">Os erros passam a ser apanhados <b>às 3 da tarde, quando se escreve o playbook</b>, e não às 3 da manhã, durante o ataque.</p>
+    </div>
+  </div>
+  <aside class="notes">Contar a história: equipas de segurança (SOC) automatizam a resposta a ataques com playbooks, normalmente em YAML. O YAML não percebe nada do que está escrito: um campo mal escrito, uma chave enviada por email ou um bloqueio sem condição só se descobrem durante o incidente. A Sentinela deteta estes três problemas antes de o playbook ser ativado.</aside>
+</section>
+
+<!-- 4 · PROPOSTA -->
+<section class="slide">
+  <div class="kicker">1 · A proposta</div>
+  <h2>Uma DSL em que os conceitos de segurança e de rede são construções da linguagem</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Utilizadores</h3><p>Analistas de segurança (SOC) e engenheiros de redes e de operações.</p></div>
+    <div class="card"><h3>Objetivo</h3><p>Playbooks <b>legíveis</b> e <b>verificáveis</b>: um playbook com erros nunca chega a produção.</p></div>
+    <div class="card"><h3>Domínio</h3><p>Resposta automática a incidentes: port scan, brute force, flood, ARP spoofing.</p></div>
+  </div>
+  <table style="margin-top:22px">
+    <tr><th style="width:24%">Conceito</th><th style="width:30%">Construção</th><th>Para que serve</th></tr>
+    <tr><td><b>Alerta</b></td><td><code>alert nome { campo: tipo; }</code></td><td>esquema tipado dos dados que chegam do IDS</td></tr>
+    <tr><td><b>Playbook</b></td><td><code>playbook nome { … }</code></td><td>conjunto de reações, com estado persistente</td></tr>
+    <tr><td><b>Handler</b></td><td><code>on X as a { }</code> · <code>every 1h { }</code></td><td>reage a cada alerta, ou à passagem do tempo</td></tr>
+    <tr><td><b>Tipos de rede</b></td><td><code>ip</code> · <code>cidr</code> · <code>duration</code></td><td>não se confunde um IP com uma rede: <code>10.0.0.0/8</code>, <code>24h</code></td></tr>
+    <tr><td><b>Segredo</b></td><td><code>secret token: string = …;</code></td><td>credencial cujo fluxo é verificado</td></tr>
+  </table>
+  <aside class="notes">Explicar quem usa a linguagem e quais são os conceitos. A ideia central: os conceitos do domínio (alerta, IP, rede, duração, segredo) não são strings, são tipos e construções que a linguagem conhece e verifica.</aside>
+</section>
+
+<!-- 5 · MODELO DE EXECUÇÃO -->
+<section class="slide">
+  <div class="kicker">1 · Modelo de execução</div>
+  <h2>Um playbook é um serviço sempre ativo, verificado antes de ser ativado</h2>
+  <div class="flow" style="margin:6px 0 26px">
+    <div class="box" style="flex:1"><b>playbook.snt</b><span class="tag">escrito pelo analista</span></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1.2"><b>Gramática de atributos</b><span class="tag">sintaxe + semântica</span></div>
+    <div class="arrow">→</div>
+    <div style="flex:1.4;display:grid;gap:10px">
+      <div class="box" style="border-color:#5a2630"><b style="color:var(--err)">✘ Erro → rejeitado</b><span class="tag">o playbook não é ativado</span></div>
+      <div class="box" style="border-color:#22513a"><b style="color:var(--ok)">✔ Avisos → ativo</b><span class="tag">os avisos ficam registados</span></div>
+    </div>
+  </div>
+  <div class="grid g4">
+    <div class="card"><h3><code>on X as a</code></h3><p class="small">Corre sempre que chega um alerta do tipo <code>X</code>.</p></div>
+    <div class="card"><h3><code>every 1h</code></h3><p class="small">Corre periodicamente, haja ou não alertas.</p></div>
+    <div class="card"><h3>Estado persistente</h3><p class="small">As variáveis do playbook mantêm o valor entre execuções.</p></div>
+    <div class="card"><h3>Estado local</h3><p class="small">As variáveis de um handler recomeçam em cada execução. Um handler de cada vez.</p></div>
+  </div>
+  <aside class="notes">Diferença importante em relação a um script: o playbook fica sempre a correr. Cada alerta dispara o handler "on" desse alerta, e o "every" corre de X em X tempo. As variáveis do playbook são estado persistente (por exemplo, um contador de incidentes). Com um erro o playbook não é ativado; com avisos é ativado.</aside>
+</section>
+
+<!-- 6 · EXEMPLO -->
+<section class="slide">
+  <div class="kicker">1 · A linguagem num exemplo</div>
+  <h2>Brute force SSH: bloquear um IP externo com demasiadas tentativas</h2>
+  <div class="grid g55">
+<pre><code><span class="k">alert</span> ssh_failed_login {
+  src_ip: <span class="t">ip</span>;
+  user: <span class="t">string</span>;
+}
+
+<span class="k">playbook</span> brute_force_ssh {
+  <span class="k">var</span> limite: <span class="t">int</span> = <span class="n">5</span>;
+  <span class="k">var</span> rede_interna: <span class="t">cidr</span> = <span class="n">10.0.0.0/8</span>;
+
+  <span class="k">on</span> ssh_failed_login <span class="k">as</span> a {
+    <span class="k">var</span> tentativas: <span class="t">int</span> = <span class="f">count</span>(a.src_ip, <span class="n">10m</span>);
+    <span class="k">if</span> (tentativas > limite <span class="k">and not</span> (a.src_ip <span class="k">in</span> rede_interna)) {
+      <span class="f">block_ip</span>(a.src_ip, <span class="n">24h</span>);
+      <span class="f">notify</span>(<span class="s">"Brute force de "</span> + <span class="f">str</span>(a.src_ip));
+    }
+  }
+}</code></pre>
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="card"><h3>Esquema do alerta</h3><p class="small">Os campos que chegam do IDS, com tipo. <code>a.src_ip</code> é verificado contra este esquema.</p></div>
+      <div class="card"><h3>Tipos e literais de rede</h3><p class="small"><code>10.0.0.0/8</code> é um <code>cidr</code>, <code>24h</code> uma <code>duration</code>; <code>ip in cidr</code> é uma operação da linguagem.</p></div>
+      <div class="card"><h3>Biblioteca de ações</h3><p class="small"><code>block_ip</code>, <code>quarantine</code>, <code>rate_limit</code>, <code>log</code>, <code>notify</code> · funções <code>count</code>, <code>len</code>, <code>str</code>.</p></div>
+    </div>
+  </div>
+  <aside class="notes">Ler o exemplo em voz alta: "quando chega uma falha de login, conta as tentativas desse IP nos últimos 10 minutos; se forem mais de 5 e o IP não for interno, bloqueia 24 horas e avisa a equipa". Mostrar que se lê quase como português.</aside>
+</section>
+
+<!-- 7 · REQUISITOS -->
+<section class="slide">
+  <div class="kicker">1 · Requisitos mínimos do guião</div>
+  <h2>Todas as construções exigidas pelo guião, ao serviço do domínio</h2>
+  <table>
+    <tr><th style="width:28%">Requisito do guião</th><th>Na Sentinela</th></tr>
+    <tr><td><b>Variáveis e declarações</b></td><td><code>var nome: tipo = valor;</code> · <code>secret nome: tipo = valor;</code></td></tr>
+    <tr><td><b>Scopes bem definidos</b></td><td><b>Estáticos</b>: playbook ⊃ handler ⊃ bloco. Declarar antes de usar; sem redeclarar no mesmo scope; <i>shadowing</i> com aviso; variável do <code>for</code> e alias do alerta só de leitura.</td></tr>
+    <tr><td><b>Expressões e estado</b></td><td><code>or and not</code> · <code>== != &lt; &gt; &lt;= &gt;= in</code> · <code>+ -</code> · <code>a.campo</code> · atribuição e estado persistente</td></tr>
+    <tr><td><b>Construções aninhadas</b></td><td>handlers com <code>if</code>/<code>else</code> e <code>for</code> aninhados sem limite</td></tr>
+    <tr><td><b>Ramificação e repetição</b></td><td><code>if (…) { } else { }</code> · <code>for x in lista { }</code> · repetição no tempo com <code>every</code></td></tr>
+    <tr><td><b>Semântica além da sintaxe</b></td><td><b>32 erros e 6 avisos</b> verificados pela gramática de atributos</td></tr>
+  </table>
+  <p class="small mute" style="margin-top:16px">Tipos: <code>int bool string ip cidr duration list&lt;T&gt;</code></p>
+  <aside class="notes">Mostrar que cumprimos cada requisito do guião. Realçar a disciplina de scopes, porque o guião pede explicitamente que seja bem definida.</aside>
+</section>
+
+<!-- 8 · CASOS PRÁTICOS -->
+<section class="slide">
+  <div class="kicker">1 · Casos práticos</div>
+  <h2>Quatro ataques reais, do mais fácil ao mais difícil</h2>
+  <div class="grid g4">
+    <div class="card"><span class="pill o">fácil</span><h3 style="margin-top:10px">Port scan</h3><p class="small"><code>nmap -sS</code></p><p class="small mute" style="margin-top:8px">Bloqueia quem varre portas sensíveis (22, 3389, 5432). <code>if/else</code>, <code>in</code> sobre listas.</p></div>
+    <div class="card"><span class="pill o">fácil</span><h3 style="margin-top:10px">Brute force SSH</h3><p class="small"><code>hydra</code></p><p class="small mute" style="margin-top:8px">Bloqueia IPs externos com demasiadas tentativas. <code>count</code>, <code>ip in cidr</code>.</p></div>
+    <div class="card"><span class="pill w">intermédio</span><h3 style="margin-top:10px">SYN flood</h3><p class="small"><code>hping3 --flood</code></p><p class="small mute" style="margin-top:8px">Limita cada origem fora da <i>whitelist</i>. <code>for</code> com <code>if</code> aninhado, contador.</p></div>
+    <div class="card"><span class="pill e">difícil</span><h3 style="margin-top:10px">ARP spoofing</h3><p class="small"><code>arpspoof</code></p><p class="small mute" style="margin-top:8px">Isola o atacante na LAN. <code>secret</code>, estado persistente, <code>every</code>, várias ações.</p></div>
+  </div>
+  <p class="hl" style="margin-top:28px">Os quatro estão em <code>exemplos/</code> e passam a verificação <b>sem erros nem avisos</b>. Cobrem as camadas de aplicação, transporte e ligação (L2).</p>
+  <aside class="notes">O professor achava que 6 casos era demasiado; reduzimos para 4, com dificuldade crescente. Todos correspondem a ataques que se reproduzem com ferramentas reais. O difícil é o ARP spoofing, que está no slide seguinte.</aside>
+</section>
+
+<!-- 9 · CASO DIFÍCIL -->
+<section class="slide">
+  <div class="kicker">1 · O caso difícil</div>
+  <h2>ARP spoofing: segredo, estado persistente e <code style="font-size:.85em">every</code></h2>
+  <div class="grid g64">
+<pre class="sm" style="font-size:12.6px;line-height:1.36;padding:12px 16px"><code><span class="k">playbook</span> lan_integrity {
+  <span class="k">secret</span> webhook_token: <span class="t">string</span> = <span class="s">"xoxb-123"</span>;
+  <span class="k">var</span> lan: <span class="t">cidr</span> = <span class="n">10.0.2.0/24</span>;
+  <span class="k">var</span> servidores: <span class="t">list&lt;ip&gt;</span> = [<span class="n">10.0.1.10</span>, <span class="n">10.0.1.20</span>];
+  <span class="k">var</span> incidentes: <span class="t">int</span> = <span class="n">0</span>;          <span class="c"># estado persistente</span>
+
+  <span class="k">on</span> arp_spoof <span class="k">as</span> x {
+    <span class="k">var</span> critico: <span class="t">bool</span> = x.claimed_ip == x.gateway_ip;
+    <span class="k">for</span> srv <span class="k">in</span> servidores {
+      <span class="k">if</span> (x.claimed_ip == srv) { critico = <span class="n">true</span>; }
+    }
+    <span class="k">if</span> (critico <span class="k">and</span> x.attacker_ip <span class="k">in</span> lan) {
+      <span class="f">quarantine</span>(x.attacker_ip);
+      <span class="f">block_ip</span>(x.attacker_ip, <span class="n">1h</span>);
+      incidentes = incidentes + <span class="n">1</span>;
+      <span class="f">notify</span>(<span class="s">"ARP spoofing por "</span> + <span class="f">str</span>(x.attacker_ip), webhook_token);
+    } <span class="k">else</span> {
+      <span class="f">log</span>(<span class="s">"ARP suspeito: "</span> + <span class="f">str</span>(x.attacker_ip));
+    }
+  }
+
+  <span class="k">every</span> <span class="n">1h</span> {                       <span class="c"># haja ou não alertas</span>
+    <span class="k">if</span> (incidentes > <span class="n">0</span>) {
+      <span class="f">notify</span>(<span class="s">"Resumo: "</span> + <span class="f">str</span>(incidentes), webhook_token);
+      incidentes = <span class="n">0</span>;
+    }
+  }
+}</code></pre>
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="card"><h3>Segredo protegido</h3><p class="small">O <code>webhook_token</code> só pode ir para o 2.º argumento do <code>notify</code> (credencial). Num <code>log</code> seria o erro <span class="pill e">E601</span></p></div>
+      <div class="card"><h3>Estado entre alertas</h3><p class="small"><code>incidentes</code> acumula de ataque em ataque e o <code>every 1h</code> envia o resumo e repõe o contador.</p></div>
+      <div class="card"><h3>Ações destrutivas guardadas</h3><p class="small"><code>quarantine</code> e <code>block_ip</code> estão dentro de um <code>if</code>: fora dele seria o aviso <span class="pill w">W01</span></p></div>
+    </div>
+  </div>
+  <aside class="notes">Este exemplo junta quase tudo: segredo, lista de IPs, variável bool alterada dentro de um for, várias ações e o handler every com estado persistente. É o que mostra que a linguagem não é trivial.</aside>
+</section>
+
+<!-- 10 · EVOLUÇÃO -->
+<section class="slide">
+  <div class="kicker">Como chegámos aqui</div>
+  <h2>Da proposta inicial à v2.0: uma linguagem mais pequena e uma só especificação</h2>
+  <div class="timeline">
+    <div class="card"><div class="ver">v0 · proposta</div><p class="small" style="margin-top:8px">6 casos, ações do utilizador, <code>retry</code>, interpolação <code>${…}</code>, <code>else if</code>, tipos <code>port</code> e <code>host</code>.</p><p class="small mute" style="margin-top:8px"><b>110</b> produções · professor: "pode ficar demasiado grande"</p></div>
+    <div class="card"><div class="ver">v1 · núcleo</div><p class="small" style="margin-top:8px">4 casos; cortes no que não era essencial; <b>32 erros</b> definidos; playbook sempre ativo com <code>every</code>.</p><p class="small mute" style="margin-top:8px">gramática Lark + verificador Python</p></div>
+    <div class="card"><div class="ver">v1.3 · qualidade</div><p class="small" style="margin-top:8px">Análise do NB07: nomes consistentes, métricas, GA completa especificada; um exemplo em LarkAG.</p><p class="small mute" style="margin-top:8px">avaliação de qualidade documentada</p></div>
+    <div class="card" style="border-color:var(--accent)"><div class="ver">v2.0 · LarkAG</div><p class="small" style="margin-top:8px"><b>Toda</b> a linguagem num só ficheiro LarkAG; novo aviso <b>W06</b>; testes refeitos.</p><p class="small mute" style="margin-top:8px"><b>65</b> produções · <b>112</b> testes</p></div>
+  </div>
+  <div class="grid g3" style="margin-top:26px">
+    <div class="card stat"><div class="big">−41%</div><div class="lbl">produções (110 → 65)</div></div>
+    <div class="card stat"><div class="big b2">1</div><div class="lbl">ficheiro define tudo: <code>sentinela.ag</code></div></div>
+    <div class="card stat"><div class="big w2">38</div><div class="lbl">verificações (32 erros + 6 avisos)</div></div>
+  </div>
+  <aside class="notes">Explicar a resposta à preocupação do professor: cortámos funcionalidades secundárias e reduzimos as produções de 110 para 65. Na v2.0 passámos tudo para LarkAG, como o professor deixou, para ter uma única fonte de verdade em vez de duas gramáticas e um verificador separado.</aside>
+</section>
+
+<!-- 11 · ARQUITETURA -->
+<section class="slide">
+  <div class="kicker">Arquitetura</div>
+  <h2>Uma só fonte de verdade: o parser e o avaliador são gerados a partir de <code style="font-size:.8em">sentinela.ag</code></h2>
+  <div class="flow" style="margin-top:12px">
+    <div class="box" style="flex:1.1;border-color:var(--accent)"><b>sentinela.ag</b><span class="tag">GIC + atributos + ER + CC</span></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1"><b>LarkAG</b><span class="tag">lê a gramática de atributos</span></div>
+    <div class="arrow">→</div>
+    <div style="flex:1.3;display:grid;gap:10px">
+      <div class="box"><b>Parser LALR(1)</b><span class="tag">Lark, a partir da GIC</span></div>
+      <div class="box"><b>Avaliador de atributos</b><span class="tag">Interpreter gerado pelo LarkAG</span></div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1.1"><b>sentinela.py</b><span class="tag">1.º erro com a linha<br>ou a lista de avisos</span></div>
+  </div>
+  <div class="grid g3" style="margin-top:30px">
+    <div class="card"><h3>1 · Sintaxe</h3><p class="small">O texto é lido pelo parser LALR(1) gerado da GIC. Programa mal formado → erro de sintaxe com a linha.</p></div>
+    <div class="card"><h3>2 · Semântica</h3><p class="small">O avaliador calcula os atributos numa travessia e verifica as condições de contexto. A primeira que falha <b>para</b> a avaliação.</p></div>
+    <div class="card"><h3>3 · Resultado</h3><p class="small">Erro → playbook <b>rejeitado</b>. Sem erros → <b>ativo</b>, com os avisos do atributo <code>warnings</code> da raiz.</p></div>
+  </div>
+  <aside class="notes">A grande decisão da v2.0: não há duas gramáticas. O sentinela.ag tem a gramática e a semântica no formato das aulas; o LarkAG gera o avaliador e nós geramos o parser LALR a partir da mesma gramática. O sentinela.py só junta as peças e mostra a linha do erro.</aside>
+</section>
+
+<!-- 12 · LÉXICO -->
+<section class="slide">
+  <div class="kicker">2 · Especificação léxica</div>
+  <h2>Os literais de rede são tokens próprios, com prioridades no lexer</h2>
+  <div class="grid g64">
+    <table style="font-size:15.5px">
+      <tr><th>Token</th><th>Definição</th><th>Exemplo</th></tr>
+      <tr><td><code>NAME</code></td><td><code>[a-zA-Z_][a-zA-Z0-9_]*</code></td><td><code>src_ip</code></td></tr>
+      <tr><td><code>INT</code></td><td><code>\d+</code></td><td><code>5432</code></td></tr>
+      <tr><td><code>STRING</code></td><td><code>"[^"]*"</code></td><td><code>"bloqueado"</code></td></tr>
+      <tr><td><code>IP</code> <span class="tag">prio 4</span></td><td><code>\d{1,3}(\.\d{1,3}){3}</code></td><td><code>10.0.0.5</code></td></tr>
+      <tr><td><code>CIDR</code> <span class="tag">prio 5</span></td><td><code>…/\d{1,2}</code></td><td><code>10.0.0.0/8</code></td></tr>
+      <tr><td><code>DURATION</code> <span class="tag">prio 3</span></td><td><code>\d+(s|m|h)</code></td><td><code>24h</code></td></tr>
+      <tr><td><code>BOOL</code> · <code>RELOP</code></td><td><code>true false</code> · <code>== != &lt; &gt; &lt;= &gt;=</code></td><td></td></tr>
+      <tr><td>Comentários</td><td><code>#</code> até ao fim da linha</td><td></td></tr>
+    </table>
+    <div style="display:grid;gap:14px;align-content:start">
+      <div class="card"><h3>21 palavras reservadas</h3><p class="small"><code>alert playbook on as every var secret if else for in not and or list int bool string ip cidr duration</code> (+ <code>true</code>, <code>false</code>)</p></div>
+      <div class="card"><h3>Prioridades</h3><p class="small"><code>10.0.0.0/8</code> é <b>um</b> <code>CIDR</code>, não um <code>IP</code> seguido de outra coisa; <code>24h</code> é <b>uma</b> <code>DURATION</code>, não <code>INT</code> + <code>NAME</code>.</p></div>
+      <div class="card"><h3>Léxico vs semântica</h3><p class="small">O lexer aceita <code>300.1.1.1</code>; é a semântica que o rejeita (<span class="pill e">E701</span>).</p></div>
+    </div>
+  </div>
+  <aside class="notes">Ponto principal: os literais de rede têm tokens próprios. Para não serem ambíguos entre si (um CIDR começa como um IP), usamos prioridades no lexer. E separamos o que é léxico (a forma) do que é semântico (a validade do valor).</aside>
+</section>
+
+<!-- 13 · SINTAXE -->
+<section class="slide">
+  <div class="kicker">2 · Especificação sintática</div>
+  <h2>Uma só gramática BNF, LALR(1) sem conflitos</h2>
+  <div class="grid g2">
+<pre class="sm"><code>P1   start      → alerts playbook
+P10  playbook   → <span class="s">"playbook"</span> NAME <span class="s">"{"</span> statedecls handlers <span class="s">"}"</span>
+P15  handler    → <span class="s">"on"</span> ident <span class="s">"as"</span> ident block
+P16  handler    → <span class="s">"every"</span> DURATION block
+P19  stmts      → stmts stmt     <span class="c"># recursão à esq.</span>
+P21  vardecl    → <span class="s">"var"</span> NAME <span class="s">":"</span> datatype <span class="s">"="</span> expr <span class="s">";"</span>
+P25  stmt       → <span class="s">"if"</span> <span class="s">"("</span> expr <span class="s">")"</span> block
+P27  stmt       → <span class="s">"for"</span> NAME <span class="s">"in"</span> expr block
+P28  stmt       → callee <span class="s">"("</span> args <span class="s">")"</span> <span class="s">";"</span>
+P33  expr       → expr <span class="s">"or"</span> andexpr
+P40  relexpr    → addexpr <span class="s">"in"</span> addexpr
+P45  accessexpr → accessexpr <span class="s">"."</span> NAME
+P47  primary    → NAME
+<span class="c">… 55 produções numeradas (GRAMATICA.md §2)</span></code></pre>
+    <div>
+      <div class="ladder">
+        <div>expr <span>· or</span></div>
+        <div style="margin-left:16px">andexpr <span>· and</span></div>
+        <div style="margin-left:32px">notexpr <span>· not</span></div>
+        <div style="margin-left:48px">relexpr <span>· == != &lt; &gt; &lt;= &gt;= in</span></div>
+        <div style="margin-left:64px">addexpr <span>· + -</span></div>
+        <div style="margin-left:80px">accessexpr <span>· .campo</span></div>
+        <div style="margin-left:96px">primary <span>· nomes, literais, ( ), [ ]</span></div>
+      </div>
+      <p class="tiny mute" style="margin-top:6px">Precedência por estratificação: quanto mais abaixo, mais forte liga.</p>
+      <div class="grid g4" style="gap:10px;margin-top:14px">
+        <div class="card stat" style="padding:12px"><div class="big" style="font-size:34px">55</div><div class="lbl tiny">produções</div></div>
+        <div class="card stat" style="padding:12px"><div class="big" style="font-size:34px">0</div><div class="lbl tiny">conflitos LALR</div></div>
+        <div class="card stat" style="padding:12px"><div class="big b2" style="font-size:34px">25</div><div class="lbl tiny">não-terminais</div></div>
+        <div class="card stat" style="padding:12px"><div class="big b2" style="font-size:34px">132</div><div class="lbl tiny">estados LALR</div></div>
+      </div>
+    </div>
+  </div>
+  <p class="small mute" style="margin-top:12px">Sem ambiguidade (LALR(1)) · associatividade à esquerda · comparações não associativas · sem <i>dangling else</i> (blocos sempre com <code>{ }</code>)</p>
+  <aside class="notes">Uma gramática LALR(1) sem conflitos é necessariamente não ambígua: cada programa tem uma só árvore. A precedência está na própria gramática, por níveis. As listas usam recursão à esquerda, como no exemplo decls → decls decl das aulas, porque é essa forma que permite passar o ambiente de declaração em declaração.</aside>
+</section>
+
+<!-- 14 · DOMÍNIOS -->
+<section class="slide">
+  <div class="kicker">3 · Gramática de atributos</div>
+  <h2>Primeiro, os domínios em que os atributos tomam valores</h2>
+  <table>
+    <tr><th style="width:16%">Domínio</th><th style="width:44%">Definição</th><th>Leitura</th></tr>
+    <tr><td><code>Tipo</code></td><td><code>{int, bool, string, ip, cidr, duration}</code> ∪ <code>list&lt;T&gt;</code> ∪ <code>A:n</code></td><td><code>A:n</code> é o tipo do alias de um alerta <code>n</code></td></tr>
+    <tr><td><code>Espécie</code></td><td><code>{var, secret, loop, alias}</code></td><td>o que um nome é (variável, segredo, variável do <code>for</code>, alias)</td></tr>
+    <tr><td><code>Env</code></td><td><code>Nome ⇀ Tipo × Espécie</code></td><td>ambiente: os nomes visíveis</td></tr>
+    <tr><td><code>Scope</code></td><td><code>℘(Nome)</code></td><td>nomes declarados no scope atual</td></tr>
+    <tr><td><code>AlertTab</code></td><td><code>Nome ⇀ (Nome ⇀ Tipo)</code></td><td>todos os alertas e os seus campos</td></tr>
+    <tr><td><code>Sig</code></td><td><code>(params, min, returns, destructive)</code></td><td>assinatura de uma ação da biblioteca</td></tr>
+    <tr><td><code>Level</code></td><td><code>{top, inner}</code></td><td>declaração no estado do playbook ou num bloco</td></tr>
+    <tr><td><code>Warning</code></td><td><code>(código, linha, mensagem)</code></td><td>um aviso</td></tr>
+  </table>
+  <aside class="notes">Antes de mostrar os atributos, mostramos os domínios. O mais importante é o Env: cada nome visível tem um tipo e uma espécie. A espécie é o que permite ter regras diferentes para segredos, variáveis do for e aliases de alertas.</aside>
+</section>
+
+<!-- 15 · DECLARAÇÃO DOS ATRIBUTOS -->
+<section class="slide">
+  <div class="kicker">3 · Declaração dos atributos</div>
+  <h2>Para cada símbolo: que atributos tem, herdados ↓ ou sintetizados ↑, e o domínio</h2>
+  <div class="grid g55">
+<pre class="sm"><code><span class="f">A(playbook)</span>   = { (alerttab, <span class="t">↓</span>, AlertTab),
+                  (handled,  <span class="n">↑</span>, ℘(Nome)), (warnings, <span class="n">↑</span>, [Warning]) }
+<span class="f">A(handler)</span>    = { (env, <span class="t">↓</span>, Env), (alerttab, <span class="t">↓</span>, AlertTab),
+                  (seen, <span class="t">↓</span>, ℘(Nome)),
+                  (target, <span class="n">↑</span>, Nome), (used, <span class="n">↑</span>, ℘(Nome)),
+                  (warnings, <span class="n">↑</span>, [Warning]) }
+<span class="f">A(stmt)</span>       = { (env, <span class="t">↓</span>, Env), (scope, <span class="t">↓</span>, Scope),
+                  (alerttab, <span class="t">↓</span>, AlertTab), (guarded, <span class="t">↓</span>, 𝔹),
+                  (envout, <span class="n">↑</span>, Env), (scopeout, <span class="n">↑</span>, Scope),
+                  (declared, <span class="n">↑</span>, Nome ⇀ ℕ), (used, <span class="n">↑</span>, ℘(Nome)),
+                  (warnings, <span class="n">↑</span>, [Warning]) }
+<span class="f">A(vardecl)</span>    = A(stmt) sem guarded, com (level, <span class="t">↓</span>, Level)
+<span class="f">A(callee)</span>     = { (name, <span class="n">↑</span>, Nome), (signature, <span class="n">↑</span>, Sig ∪ {⊥}),
+                  (line, <span class="n">↑</span>, ℕ) }
+<span class="f">A(X)</span>          = { (env, <span class="t">↓</span>, Env), (alerttab, <span class="t">↓</span>, AlertTab),
+                  (type, <span class="n">↑</span>, Tipo), (secret, <span class="n">↑</span>, 𝔹),
+                  (const, <span class="n">↑</span>, Const), (used, <span class="n">↑</span>, ℘(Nome)) }
+  <span class="c">para X ∈ {expr, andexpr, notexpr, relexpr, addexpr, accessexpr, primary}</span></code></pre>
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="card"><h3>Herdados ↓</h3><p class="small">vêm do pai ou dos irmãos à esquerda: o <b>contexto</b> (<code>env</code>, <code>scope</code>, <code>alerttab</code>, <code>guarded</code>, <code>level</code>, <code>seen</code>)</p></div>
+      <div class="card"><h3>Sintetizados ↑</h3><p class="small">calculados a partir dos filhos: os <b>resultados</b> (<code>type</code>, <code>secret</code>, <code>envout</code>, <code>used</code>, <code>warnings</code>)</p></div>
+      <div class="card"><h3>No LarkAG</h3><p class="small">São as linhas <code>IA(...)</code> e <code>SA(...)</code> no início de <code>sentinela.ag</code>, com os tipos Python de cada domínio.</p></div>
+      <p class="tiny mute">Declaração completa: <code>GRAMATICA.md</code> §3.2 · 25 nomes de atributos</p>
+    </div>
+  </div>
+  <aside class="notes">Este é o slide que o professor pediu: a declaração dos atributos. Cada símbolo tem os seus atributos, cada um marcado como herdado ou sintetizado e com o domínio. Regra simples para explicar: o que desce é o contexto, o que sobe são os resultados.</aside>
+</section>
+
+<!-- 16 · LER A SEMÂNTICA -->
+<section class="slide">
+  <div class="kicker">3 · Ler a semântica nas declarações</div>
+  <h2>Só com as declarações dos atributos, já se leem as regras da linguagem</h2>
+  <table>
+    <tr><th style="width:42%">Padrão nas declarações</th><th>Regra da linguagem</th></tr>
+    <tr><td><code>env</code> ↓ em todo o lado; <code>envout</code> ↑ nas sequências</td><td><b>Scopes estáticos</b> e <b>declarar antes de usar</b>: o ambiente desce e cresce da esquerda para a direita</td></tr>
+    <tr><td><code>scope</code> ↓, um por bloco</td><td>Não se redeclara no mesmo bloco; um bloco interior pode reutilizar um nome</td></tr>
+    <tr><td><code>Env</code> guarda a <code>Espécie</code></td><td>Segredos, variáveis do <code>for</code> e aliases têm <b>regras próprias</b></td></tr>
+    <tr><td><code>type</code> ↑ nas expressões, sem tipo herdado</td><td><b>Tipagem de baixo para cima</b>; os tipos das variáveis vêm de declarações explícitas</td></tr>
+    <tr><td><code>secret</code> ↑ nas expressões</td><td><b>Fluxo de informação</b>: o que usa um segredo fica secreto</td></tr>
+    <tr><td><code>seen</code> ↓ em <code>alert</code>, <code>field</code>, <code>handler</code></td><td>Cada alerta, campo e <code>on</code> é <b>único</b></td></tr>
+    <tr><td><code>level</code> ↓ em <code>vardecl</code> · <code>guarded</code> ↓ nas instruções</td><td>A <b>posição</b> importa: segredos só no estado; ações destrutivas fora de <code>if</code> assinaladas</td></tr>
+    <tr><td><code>warnings</code> é atributo; os erros são CC</td><td><b>Dois níveis</b>: erros impedem a ativação, avisos não</td></tr>
+  </table>
+  <aside class="notes">Mensagem principal: a semântica lê-se nas declarações. Exemplos para dizer em voz alta: o env é herdado e cresce da esquerda para a direita, por isso as variáveis têm de ser declaradas antes de usadas. O type é sintetizado e não há tipo herdado, por isso o tipo de uma expressão vem só das suas partes. O secret é sintetizado, por isso qualquer expressão que use um segredo fica secreta.</aside>
+</section>
+
+<!-- 17 · GRAMÁTICA ANOTADA -->
+<section class="slide">
+  <div class="kicker">3 · Gramática anotada</div>
+  <h2>Cada produção tem regras de cálculo (ER) e condições (CC)</h2>
+  <div class="grid g2">
+    <div>
+      <p class="small mute" style="margin-bottom:8px"><b>Notação matemática</b> (GRAMATICA.md §4)</p>
+      <div class="card">
+        <p class="small"><b>P21</b> &nbsp;<code>vardecl → "var" NAME ":" datatype "=" expr ";"</code></p>
+        <p class="small" style="margin-top:10px"><span class="tag">ER</span><br><code>vardecl.envout = vardecl.env ⊕ {NAME ↦ (datatype.type, var)}</code><br><code>vardecl.scopeout = vardecl.scope ∪ {NAME}</code></p>
+        <p class="small" style="margin-top:10px"><span class="tag">CC</span><br><code>NAME ∉ vardecl.scope</code> → <span class="pill e">E102</span><br><code>expr.type = datatype.type</code> → <span class="pill e">E301</span><br><code>¬ expr.secret</code> → <span class="pill e">E602</span></p>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <p class="small"><b>P47</b> &nbsp;<code>primary → NAME</code></p>
+        <p class="small" style="margin-top:6px"><code>(primary.type, k) = primary.env(NAME)</code> · <code>primary.secret = (k = secret)</code></p>
+        <p class="small" style="margin-top:6px"><code>NAME ∈ dom(primary.env)</code> → <span class="pill e">E101</span></p>
+      </div>
+    </div>
+    <div>
+      <p class="small mute" style="margin-bottom:8px"><b>A mesma produção em LarkAG</b> (<code>sentinela.ag</code>)</p>
+<pre class="sm"><code>vardecl : <span class="s">"var"</span> NAME <span class="s">":"</span> datatype <span class="s">"="</span> expr <span class="s">";"</span>
+<span class="k">ER</span> {
+  expr.env = vardecl.env;
+  expr.alerttab = vardecl.alerttab;
+  vardecl.envout = vardecl.env |
+      { <span class="f">str</span>(NAME) : (datatype.type, <span class="s">"var"</span>) };
+  vardecl.scopeout = vardecl.scope | { <span class="f">str</span>(NAME) };
+  <span class="c">…</span>
+}
+<span class="k">CC</span> {
+  <span class="f">str</span>(NAME) <span class="k">not in</span> vardecl.scope
+      -> <span class="s">"E102: nome já declarado neste scope"</span>;
+  expr.type == datatype.type
+      -> <span class="s">"E301: o valor não tem o tipo declarado"</span>;
+  <span class="k">not</span> expr.secret
+      -> <span class="s">"E602: um segredo não pode ser guardado…"</span>;
+}</code></pre>
+    </div>
+  </div>
+  <aside class="notes">Mostrar a correspondência direta entre a especificação no papel e o LarkAG: as mesmas regras, nos mesmos atributos. Ler a P21: a declaração acrescenta o nome ao ambiente e ao scope; as condições verificam que não é repetido, que o tipo bate certo e que não se guarda um segredo numa variável normal.</aside>
+</section>
+
+<!-- 18 · L-ATRIBUÍDA -->
+<section class="slide">
+  <div class="kicker">3 · Ordem de avaliação</div>
+  <h2>A gramática é L-atribuída: uma só travessia, da esquerda para a direita</h2>
+  <div class="flow" style="margin-top:6px">
+    <div class="box" style="flex:1"><b>block</b><span class="tag">env = E · scope = ∅</span></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1.3"><b>var n: int = 0;</b><span class="tag">envout = E ⊕ {n ↦ (int, var)}</span></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1.3"><b>n = n + 1;</b><span class="tag">env já contém n</span></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1"><b style="color:var(--ok)">✔ E101 · ✔ E301</b><span class="tag">n declarada · int = int</span></div>
+  </div>
+  <div class="grid g2" style="margin-top:28px">
+    <div class="card"><h3>Porque é L-atribuída</h3><p class="small">Cada atributo herdado depende só do <b>pai</b> e dos <b>irmãos à esquerda</b>:</p>
+      <ul class="small" style="margin-top:8px"><li><code>handlers.env = statedecls.envout</code> (P10)</li><li><code>stmt.env = stmts₁.envout</code> (P19)</li><li><code>handler.seen = handlers₁.handled</code> (P13)</li><li>tipo da variável do <code>for</code> = <code>elem(expr.type)</code> (P27)</li></ul></div>
+    <div class="card"><h3>Consequências</h3><ul class="small"><li>uma travessia em profundidade chega para tudo;</li><li>o LarkAG calcula a ordem a partir das dependências e recusa ciclos;</li><li>a <b>primeira</b> condição de contexto que falha para a avaliação, como num compilador, e a linha do erro é a do nó em avaliação.</li></ul></div>
+  </div>
+  <aside class="notes">A pergunta "pode ser avaliada numa só passagem?" é provável. Resposta: sim, porque é L-atribuída. O exemplo mostra o ambiente a crescer: a primeira instrução declara n, a segunda já o vê.</aside>
+</section>
+
+<!-- 19 · ERROS E AVISOS -->
+<section class="slide">
+  <div class="kicker">3 · Propriedades verificadas</div>
+  <h2>32 erros e 6 avisos, organizados em 7 famílias</h2>
+  <div class="grid g4" style="gap:14px">
+    <div class="card fam"><span class="n" style="color:var(--err)">5</span><h3>Declarações e scopes</h3><p class="tiny mute">E101–E105 · não declarado, redeclarado, alerta/campo repetido, segredo fora do estado</p><div class="bar"><i style="width:50%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">4</span><h3>Alertas e handlers</h3><p class="tiny mute">E201–E204 · alerta inexistente, <code>on</code> repetido, campo inexistente</p><div class="bar"><i style="width:40%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">10</span><h3>Tipos</h3><p class="tiny mute">E301–E310 · <code>ip ≠ cidr</code>, <code>"porta " + 22</code>, <code>if (s.port)</code>, <code>[]</code></p><div class="bar"><i style="width:100%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">5</span><h3>Chamadas</h3><p class="tiny mute">E401–E405 · ação inexistente, argumentos, <code>log();</code></p><div class="bar"><i style="width:50%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">2</span><h3>Mutabilidade</h3><p class="tiny mute">E501–E502 · alterar um segredo ou a variável do <code>for</code></p><div class="bar"><i style="width:20%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">3</span><h3>Segredos</h3><p class="tiny mute">E601–E603 · segredo num <code>log</code>, numa <code>var</code> ou numa condição</p><div class="bar"><i style="width:30%"></i></div></div>
+    <div class="card fam"><span class="n" style="color:var(--err)">3</span><h3>Literais de rede</h3><p class="tiny mute">E701–E703 · <code>300.1.1.1</code>, <code>/40</code>, <code>0h</code></p><div class="bar"><i style="width:30%"></i></div></div>
+    <div class="card fam" style="border-color:#5a4520"><span class="n" style="color:var(--warn)">6</span><h3>Avisos</h3><p class="tiny mute">W01–W06 · destrutiva sem <code>if</code>, não usada, <i>shadowing</i>, alerta sem <code>on</code>, <code>if (true)</code>, <code>log("")</code></p><div class="bar"><i style="width:60%;background:var(--warn)"></i></div></div>
+  </div>
+  <p class="small mute" style="margin-top:18px">Erros = condições de contexto (o playbook não é ativado) · Avisos = atributo <code>warnings</code> (o playbook é ativado) · Catálogo completo: <code>CATALOGO_ERROS.md</code></p>
+  <aside class="notes">Tipos é a família maior. Dizer que os erros são condições de contexto e os avisos um atributo sintetizado; por isso um aviso não impede a ativação. O W06 (mensagem vazia) foi acrescentado na v2.0: só se deteta o texto vazio escrito diretamente.</aside>
+</section>
+
+<!-- 20 · SEGREDOS -->
+<section class="slide">
+  <div class="kicker">3 · Destaque: análise de fluxo de informação</div>
+  <h2>Os segredos são seguidos ao longo das expressões, até onde são usados</h2>
+  <div class="grid g2">
+    <div class="card" style="border-color:#22513a">
+      <h3 style="color:var(--ok)">✔ Aceite</h3>
+<pre class="sm"><code><span class="k">secret</span> token: <span class="t">string</span> = <span class="s">"xoxb-123"</span>;
+<span class="c"># o segredo vai só para a credencial do notify</span>
+<span class="f">notify</span>(<span class="s">"Scan de "</span> + <span class="f">str</span>(s.src), token);</code></pre>
+    </div>
+    <div class="card" style="border-color:#5a2630">
+      <h3 style="color:var(--err)">✘ Rejeitado</h3>
+<pre class="sm"><code><span class="f">log</span>(<span class="s">"token="</span> + token);          <span class="c"># E601</span>
+<span class="k">var</span> copia: <span class="t">string</span> = token;     <span class="c"># E602</span>
+<span class="k">if</span> (token == <span class="s">"abc"</span>) { … }        <span class="c"># E603</span>
+token = <span class="s">"outro"</span>;                 <span class="c"># E501</span></code></pre>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card"><h3>Atributo <code>secret</code> ↑</h3><p class="small">É verdadeiro se a expressão usa um segredo: <code>"x" + token</code>, <code>str(token)</code>, <code>token == "abc"</code>.</p></div>
+    <div class="card"><h3>Fuga explícita</h3><p class="small">Um valor secreto não pode ir para nenhuma ação, nem ser guardado numa <code>var</code> (para não ser "lavado").</p></div>
+    <div class="card"><h3>Fuga implícita</h3><p class="small">Também não pode controlar um <code>if</code> ou um <code>for</code>: o comportamento revelaria o segredo.</p></div>
+  </div>
+  <aside class="notes">É a parte mais interessante da semântica e a que mais nos distingue. O atributo secret é sintetizado e propaga-se por concatenações, conversões e comparações. Distinguimos fuga explícita (passar o valor) e fuga implícita (usar o segredo numa condição).</aside>
+</section>
+
+<!-- 21 · DEMO -->
+<section class="slide">
+  <div class="kicker">Demonstração</div>
+  <h2>O processador rejeita no primeiro erro e ativa o playbook mesmo com avisos</h2>
+<pre class="term" style="font-size:16px;line-height:1.6"><code><span class="pr">$</span> python sentinela.py testes/E204*.snt testes/E301*.snt testes/E601*.snt \
+                      testes/W02*.snt exemplos/04_arp_spoofing.snt
+<span class="bad">✘ rejeitado</span>  testes/E204_campo_inexistente.snt
+    linha 9: erro E204: o alerta não tem esse campo
+<span class="bad">✘ rejeitado</span>  testes/E301_tipo_declarado.snt
+    linha 8: erro E301: o valor não tem o tipo declarado
+<span class="bad">✘ rejeitado</span>  testes/E601_segredo_no_log.snt
+    linha 10: erro E601: um segredo só pode ser passado como credencial do notify
+<span class="ok">✔ ativo</span>  testes/W02_variavel_nao_usada.snt
+    <span class="wr">linha 9: aviso W02: 'esquecida' é declarada mas nunca é usada</span>
+<span class="ok">✔ ativo</span>  exemplos/04_arp_spoofing.snt</code></pre>
+  <div class="grid g3" style="margin-top:20px">
+    <div class="card"><p class="small"><code>python sentinela.py exemplos/*.snt</code><br><span class="mute">os 4 casos: ativos, sem avisos</span></p></div>
+    <div class="card"><p class="small"><code>python sentinela.py testes/*.snt</code><br><span class="mute">um programa por código: cada erro e aviso</span></p></div>
+    <div class="card"><p class="small"><code>python sentinela.py --arvore …</code><br><span class="mute">mostra também a árvore sintática</span></p></div>
+  </div>
+  <aside class="notes">Se der, correr ao vivo no terminal (dentro de TP, com o .venv ativo). É a saída real do sentinela.py. Mostrar que o erro vem com a linha e o código, e que um aviso não impede a ativação.</aside>
+</section>
+
+<!-- 22 · TESTES -->
+<section class="slide">
+  <div class="kicker">Validação</div>
+  <h2>112 testes automáticos: cada código tem um programa que o provoca na linha certa</h2>
+  <div class="grid g55">
+    <div>
+<pre class="sm"><code><span class="c"># E302: Somar valores de tipos diferentes.</span>
+<span class="k">alert</span> scan {
+  src: <span class="t">ip</span>;
+  port: <span class="t">int</span>;
+}
+
+<span class="k">playbook</span> p {
+  <span class="k">on</span> scan <span class="k">as</span> s {
+    <span class="f">log</span>(<span class="s">"porta "</span> + s.port);   <span class="c"># expect: E302</span>
+  }
+}</code></pre>
+      <p class="small mute" style="margin-top:10px">O teste verifica o <b>código</b> e a <b>linha</b>. Para avisos, verifica que o playbook fica ativo com exatamente esse aviso.</p>
+    </div>
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="card stat"><div class="big">112</div><div class="lbl">testes a passar (<code>pytest -q</code>)</div></div>
+      <div class="card"><h3>Sintaxe</h3><p class="small">LALR(1) sem conflitos · aceita todos os programas · rejeita mal formados · tokens de rede.</p></div>
+      <div class="card"><h3>Semântica</h3><p class="small">41 programas em <code>testes/</code> (todos os 38 códigos) · exemplos sem avisos · casos válidos que <b>não</b> podem ser rejeitados.</p></div>
+    </div>
+  </div>
+  <aside class="notes">Cada um dos 38 códigos tem um ficheiro de teste que marca a linha onde o problema tem de aparecer. Há também testes do lado contrário: casos válidos (por exemplo o segredo como credencial do notify) que não podem ser rejeitados, para garantir que as regras não são demasiado rígidas.</aside>
+</section>
+
+<!-- 23 · QUALIDADE LINGUAGEM -->
+<section class="slide">
+  <div class="kicker">4 · Qualidade da linguagem (NB07)</div>
+  <h2>A Sentinela troca extensibilidade por fiabilidade, unicidade e consistência</h2>
+  <table>
+    <tr><th style="width:20%">Fator</th><th style="width:12%">Nível</th><th>Porquê</th></tr>
+    <tr><td><b>Fiabilidade</b></td><td><span class="pill o">alta</span></td><td>É o objetivo: tipos estáticos, campos validados, fluxo de segredos, ações destrutivas assinaladas</td></tr>
+    <tr><td><b>Expressividade</b></td><td><span class="pill o">alta</span></td><td>Tipos, literais e ações de rede são primitivos: escreve-se ao nível do problema</td></tr>
+    <tr><td><b>Unicidade</b></td><td><span class="pill o">alta</span></td><td>Uma só forma de cada construção: um ciclo, um condicional, uma declaração</td></tr>
+    <tr><td><b>Consistência</b></td><td><span class="pill o">alta</span></td><td><code>nome: tipo</code> em todas as declarações, <code>;</code> e <code>{ }</code> uniformes, uma só convenção de nomes</td></tr>
+    <tr><td><b>Documentação</b></td><td><span class="pill w">média</span></td><td>Só comentários de linha; os esquemas <code>alert</code> documentam os dados de forma verificável</td></tr>
+    <tr><td><b>Escalabilidade</b></td><td><span class="pill w">média</span></td><td>Vários alertas e estado partilhado, mas sem módulos</td></tr>
+    <tr><td><b>Extensibilidade · Modularidade</b></td><td><span class="pill e">baixa</span></td><td><b>Por opção</b>: sem ações do utilizador nem <code>import</code>, para manter a linguagem pequena</td></tr>
+  </table>
+  <aside class="notes">A troca é deliberada e adequada ao domínio: um playbook mal escrito pode bloquear tráfego legítimo, por isso deve ser simples, previsível e verificado. A baixa modularidade é a primeira candidata a extensão futura.</aside>
+</section>
+
+<!-- 24 · QUALIDADE GRAMÁTICA -->
+<section class="slide">
+  <div class="kicker">4 · Qualidade da gramática (métricas)</div>
+  <h2>A GA cresce sobretudo com regras de cópia: a lógica real é pequena</h2>
+  <div class="grid g2">
+    <div>
+      <h3>Gramática independente de contexto</h3>
+      <table class="small">
+        <tr><td>Não-terminais · terminais</td><td><b>25 · 46</b></td></tr>
+        <tr><td>Produções (Lark)</td><td><b>65</b></td></tr>
+        <tr><td>Produções unitárias</td><td><b>10</b> (6 na escada de precedência)</td></tr>
+        <tr><td>Recursão direta (esq. / dir.)</td><td><b>11 / 1</b> (só o prefixo <code>not</code>)</td></tr>
+        <tr><td>Estados LALR · entradas</td><td><b>132 · 849</b></td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Gramática de atributos</h3>
+      <table class="small">
+        <tr><td>Atributos (↓ / ↑)</td><td><b>123</b> (44 / 79) · 25 nomes</td></tr>
+        <tr><td>Regras de cálculo</td><td><b>354</b></td></tr>
+        <tr><td>das quais cópias <code>X.a = Y.a</code></td><td><b>190 (54 %)</b></td></tr>
+        <tr><td>Condições de contexto</td><td><b>54</b> · 32 códigos</td></tr>
+        <tr><td>Grau médio de dependências</td><td><b>1,81</b></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card stat"><div class="big">54%</div><div class="lbl">das regras só copiam contexto (obrigatório no LarkAG)</div></div>
+    <div class="card stat"><div class="big b2">164</div><div class="lbl">regras com lógica real, mais 54 condições</div></div>
+    <div class="card stat"><div class="big w2">110→65</div><div class="lbl">produções, da proposta à v2.0</div></div>
+  </div>
+  <aside class="notes">Pergunta provável: "porque é que a gramática de atributos tem tantas regras?". Resposta: mais de metade são cópias que passam o ambiente de pai para filho, que o LarkAG obriga a escrever. A verificação real está em 164 regras e 54 condições. Limite: as métricas medem estrutura, não usabilidade; uma comparação empírica com YAML fica como trabalho futuro.</aside>
+</section>
+
+<!-- 25 · DECISÕES E LIMITES -->
+<section class="slide">
+  <div class="kicker">Decisões e limites</div>
+  <h2>O que decidimos deixar de fora, e o que nenhuma análise estática apanha</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Fora do âmbito, de propósito</h3>
+      <ul class="small">
+        <li>ações e funções definidas pelo utilizador, módulos e <code>import</code>;</li>
+        <li><code>retry … until</code>, <code>else if</code> em cadeia, <code>*</code> e <code>/</code>;</li>
+        <li>interpolação de strings <code>${…}</code> (usa-se <code>+</code> e <code>str()</code>);</li>
+        <li>tipos <code>port</code> e <code>host</code> (usam-se <code>int</code> e <code>ip</code>).</li>
+      </ul>
+      <p class="tiny mute" style="margin-top:10px">Motivo: manter a gramática pequena e o projeto realizável.</p>
+    </div>
+    <div class="card">
+      <h3>Só se sabe em execução</h3>
+      <ul class="small">
+        <li>o alerta real (JSON do IDS) chega sem um campo declarado;</li>
+        <li>a firewall falha ao aplicar o <code>block_ip</code>;</li>
+        <li><code>count(…)</code> devolve um valor inesperado;</li>
+        <li><code>log(x + "")</code>: a mensagem vazia não é detetável estaticamente.</li>
+      </ul>
+      <p class="tiny mute" style="margin-top:10px">Por isso o W06 só deteta <code>""</code> escrito diretamente.</p>
+    </div>
+  </div>
+  <p class="hl" style="margin-top:22px">E uma escolha de comportamento: <b>a primeira condição de contexto que falha para a avaliação</b>, como no LarkAG das aulas e num compilador.</p>
+  <aside class="notes">Mostrar maturidade: sabemos o que fica de fora e porquê, e sabemos o que uma análise estática não consegue apanhar.</aside>
+</section>
+
+<!-- 26 · PARTE II -->
+<section class="slide">
+  <div class="kicker">Próximos passos · Parte II</div>
+  <h2>A árvore anotada pela gramática de atributos é a base da Parte II</h2>
+  <div class="grid g4">
+    <div class="card"><div class="big" style="font-size:40px">①</div><h3 style="margin-top:8px">Representar</h3><p class="small">Grafo de fluxo de controlo de cada handler.</p></div>
+    <div class="card"><div class="big b2" style="font-size:40px">②</div><h3 style="margin-top:8px">Analisar</h3><p class="small">Código inalcançável, ações destrutivas alcançáveis sem condição.</p></div>
+    <div class="card"><div class="big" style="font-size:40px">③</div><h3 style="margin-top:8px">Visualizar</h3><p class="small">Desenho dos playbooks e dos grafos.</p></div>
+    <div class="card"><div class="big w2" style="font-size:40px">④</div><h3 style="margin-top:8px">Transformar</h3><p class="small">Traduzir playbooks em regras <code>nftables</code> reais.</p></div>
+  </div>
+  <p class="mute" style="margin-top:28px">Os atributos já calculados (tipos, scopes, segredos, <code>guarded</code>) são o ponto de partida para estas análises.</p>
+  <aside class="notes">Ligar à Parte II do guião: representar, analisar, visualizar e transformar. A tradução para nftables torna a linguagem utilizável numa rede real.</aside>
+</section>
+
+<!-- 27 · CONCLUSÃO -->
+<section class="slide title-slide">
+  <div class="kicker">Conclusão</div>
+  <h1 style="font-size:52px">A Sentinela deteta <span>antes da ativação</span><br>os erros que o YAML só revela em produção</h1>
+  <div class="grid g4" style="margin-top:34px">
+    <div class="card stat"><div class="big" style="font-size:40px">1</div><div class="lbl">especificação: <code>sentinela.ag</code></div></div>
+    <div class="card stat"><div class="big" style="font-size:40px">0</div><div class="lbl">conflitos LALR(1)</div></div>
+    <div class="card stat"><div class="big w2" style="font-size:40px">38</div><div class="lbl">verificações semânticas</div></div>
+    <div class="card stat"><div class="big b2" style="font-size:40px">112</div><div class="lbl">testes a passar</div></div>
+  </div>
+  <p style="margin-top:34px;font-size:30px;font-weight:700">Obrigado! Perguntas?</p>
+  <p class="mute small" style="margin-top:8px">Repositório: <code>github.com/icsousa/EG</code> · pasta <code>TP</code></p>
+  <aside class="notes">Fechar com a frase-resumo e os quatro números. Abrir para perguntas.</aside>
+</section>
+
+<!-- 28 · REFERÊNCIAS -->
+<section class="slide">
+  <div class="kicker">Referências</div>
+  <h2>Referências</h2>
+  <ul class="small" style="margin-top:6px">
+    <li>N. Macedo, "NB07: Language and Grammar Quality", Engenharia Gramatical, Universidade do Minho, 2026.</li>
+    <li>N. Macedo, "EX04: Attribute Grammars and LarkAG", Engenharia Gramatical, Universidade do Minho, 2026.</li>
+    <li>P. R. Henriques, "Brincando às Linguagens com rigor: Engenharia Gramatical", Universidade do Minho, 2012.</li>
+    <li>Lark, a parsing toolkit for Python: <code>github.com/lark-parser/lark</code></li>
+    <li>LarkAG, attribute grammars on top of Lark: <code>github.com/nmacedo/LarkAG</code></li>
+    <li>Sentinela (este projeto): <code>github.com/icsousa/EG</code>, pasta <code>TP</code> · <code>README.md</code>, <code>GRAMATICA.md</code>, <code>CATALOGO_ERROS.md</code>, <code>QUALIDADE.md</code></li>
+  </ul>
+  <aside class="notes">Slide de apoio; não é preciso apresentar.</aside>
+</section>
+
+</div></div>
+
+<div id="ui"><div id="progress"></div></div>
+<div id="notes"><h4>Notas do orador</h4><div id="notesText"></div></div>
+<div id="nav"><button id="prev" title="Anterior (←)">←</button><button id="count">1 / 1</button><button id="next" title="Seguinte (→)">→</button><button id="nbtn" title="Notas (N)">Notas</button><button id="fbtn" title="Ecrã inteiro (F)">⛶</button></div>
+<div id="help">← → navegar · N notas · F ecrã inteiro · Ctrl+P exportar PDF</div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const stage=document.getElementById('stage');
+  const total=slides.length;
+  let i=0;
+  slides.forEach((s,k)=>{
+    const f=document.createElement('div');f.className='foot';
+    f.innerHTML='<span>Sentinela · Grupo 7 · Engenharia Gramatical 2026/27</span><span>'+(k+1)+' / '+total+'</span>';
+    s.appendChild(f);
+  });
+  function fit(){
+    const sc=Math.min(window.innerWidth/1300,window.innerHeight/740);
+    stage.style.transform='scale('+sc+')';
+  }
+  function show(n){
+    i=Math.max(0,Math.min(total-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    document.getElementById('progress').style.width=((i+1)/total*100)+'%';
+    document.getElementById('count').textContent=(i+1)+' / '+total;
+    const note=slides[i].querySelector('aside.notes');
+    document.getElementById('notesText').textContent=note?note.textContent:'';
+    try{history.replaceState(null,'','#'+(i+1));}catch(e){}
+  }
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();show(i+1);}
+    else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();show(i-1);}
+    else if(e.key==='Home')show(0);
+    else if(e.key==='End')show(total-1);
+    else if(e.key==='n'||e.key==='N')document.getElementById('notes').classList.toggle('show');
+    else if(e.key==='f'||e.key==='F')toggleFs();
+  });
+  function toggleFs(){if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();else document.exitFullscreen&&document.exitFullscreen();}
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('nbtn').onclick=()=>document.getElementById('notes').classList.toggle('show');
+  document.getElementById('fbtn').onclick=toggleFs;
+  let x0=null;
+  document.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)show(i+(dx<0?1:-1));x0=null;});
+  const nav=document.getElementById('nav'),help=document.getElementById('help');let tm;
+  setTimeout(()=>help.style.opacity=0,6000);
+  document.addEventListener('mousemove',()=>{nav.style.opacity=1;clearTimeout(tm);tm=setTimeout(()=>nav.style.opacity=0,1800);});
+  window.addEventListener('resize',fit);
+  fit();
+  const h=parseInt(location.hash.slice(1));
+  show(isNaN(h)?0:h-1);
+})();
+</script>
+</body>
+</html>
