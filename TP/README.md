@@ -266,7 +266,7 @@ A(X)          = { (env,       ↓, Env),      (alerttab, ↓, AlertTab),
                 para X ∈ {expr, andexpr, notexpr, relexpr, addexpr, accessexpr, primary}
 ```
 
-Domínios: `Tipo = {int, bool, string, ip, cidr, duration} ∪ {list<T>} ∪ {A:n}`, `Espécie = {var, secret, loop, alias}`, `Env = Nome ⇀ Tipo × Espécie`, `Scope = ℘(Nome)`, `AlertTab = Nome ⇀ (Nome ⇀ Tipo)`, `Level = {top, inner}`, `Warning = (código, linha, mensagem)`. Definições completas em [`GRAMATICA.md`](GRAMATICA.md) (§3.1).
+Domínios: `Tipo = {int, bool, string, ip, cidr, duration} ∪ {list<T>} ∪ {A:n}`, `Espécie = {var, secret, loop, alias}`, `Env = Nome ⇀ Tipo × Espécie`, `Scope = ℘(Nome)`, `AlertTab = Nome ⇀ (Nome ⇀ Tipo)`, `Level = {top, inner}`, `Warning = (código, linha, mensagem)`. Definições completas em [`GRAMATICA.md`](GRAMATICA.md).
 
 <a id="leitura"></a>
 ### 3.2 O que as declarações dizem sobre a semântica
