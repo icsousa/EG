@@ -1,0 +1,48 @@
+digraph "lan_integrity" {
+  rankdir=TB; nodesep=0.4;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+  "B0" [label="ativação de lan_integrity", shape=oval, style="filled,bold", fillcolor="#dbeafe"];
+  "B1" [label="B1\lL9: secret webhook_token: string = \"xoxb-123\";\lL10: var lan: cidr = 10.0.2.0/24;\lL11: var servidores: list<ip> = [10.0.1.10, 10.0.1.20];\lL12: var incidentes: int = 0;\l", shape=box];
+  "B2" [label="aguardar evento", shape=oval, style="filled,bold", fillcolor="#fef3c7"];
+  subgraph cluster_0 {
+    label="on arp_spoof"; style="rounded,dashed"; color="#9ca3af";
+    "B3" [label="B3\lL14: on arp_spoof as x\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "B4" [label="B4\lL15: var critico: bool = x.claimed_ip == x.gateway_ip;\l", shape=box];
+    "B5" [label="B5\lL16: for srv in servidores\l", shape=hexagon, style=filled, fillcolor="#dcfce7"];
+    "B6" [label="B6\lL17: if (x.claimed_ip == srv)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B7" [label="B7\lL18: critico = true;\l", shape=box];
+    "B8" [label="B8\lL21: if (critico and x.attacker_ip in lan)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B9" [label="B9\lL22: quarantine(x.attacker_ip);\lL23: block_ip(x.attacker_ip, 1h);\lL24: incidentes = incidentes + 1;\lL25: notify(\"ARP spoofing por \" + str(x.attacker_ip), webhook_token);\l", shape=box, color="#dc2626", fontcolor="#dc2626"];
+    "B11" [label="B11\lL27: log(\"ARP suspeito, sem impacto: \" + str(x.attacker_ip));\l", shape=box];
+    "B10" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  subgraph cluster_1 {
+    label="every 1h"; style="rounded,dashed"; color="#9ca3af";
+    "B12" [label="B12\lL31: every 1h\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "B13" [label="B13\lL32: if (incidentes > 0)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B14" [label="B14\lL33: notify(\"Resumo: \" + str(incidentes) + \" incidentes na última hora\", webhook_token);\lL34: incidentes = 0;\l", shape=box];
+    "B15" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  "B0" -> "B1" [];
+  "B1" -> "B2" [];
+  "B2" -> "B3" [label="on arp_spoof", style=dashed, color="#6b7280"];
+  "B2" -> "B12" [label="every 1h", style=dashed, color="#6b7280"];
+  "B3" -> "B4" [];
+  "B4" -> "B5" [];
+  "B5" -> "B6" [label="iterar", color="#15803d"];
+  "B5" -> "B8" [label="sair", color="#b91c1c"];
+  "B6" -> "B7" [label="verdadeiro", color="#15803d"];
+  "B6" -> "B5" [label="falso", color="#b91c1c"];
+  "B7" -> "B5" [];
+  "B8" -> "B9" [label="verdadeiro", color="#15803d"];
+  "B8" -> "B11" [label="falso", color="#b91c1c"];
+  "B9" -> "B10" [];
+  "B11" -> "B10" [];
+  "B10" -> "B2" [style=dashed, color="#6b7280", constraint=false];
+  "B12" -> "B13" [];
+  "B13" -> "B14" [label="verdadeiro", color="#15803d"];
+  "B13" -> "B15" [label="falso", color="#b91c1c"];
+  "B14" -> "B15" [];
+  "B15" -> "B2" [style=dashed, color="#6b7280", constraint=false];
+}

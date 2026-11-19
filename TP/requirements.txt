@@ -1,3 +1,4 @@
 lark>=1.2
 pytest
+networkx>=3
 lark_ag @ git+https://github.com/nmacedo/LarkAG.git@ag-soundness-fixes

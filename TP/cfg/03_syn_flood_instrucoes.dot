@@ -1,0 +1,37 @@
+digraph "dos_mitigation" {
+  rankdir=TB; nodesep=0.4;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+  "n0" [label="ativação de dos_mitigation", shape=oval, style="filled,bold", fillcolor="#dbeafe"];
+  "n1" [label="n1\lL9: var limiar: int = 5000;\l", shape=box];
+  "n2" [label="n2\lL10: var whitelist: list<ip> = [10.0.9.10, 10.0.9.11];\l", shape=box];
+  "n3" [label="aguardar evento", shape=oval, style="filled,bold", fillcolor="#fef3c7"];
+  subgraph cluster_0 {
+    label="on syn_flood"; style="rounded,dashed"; color="#9ca3af";
+    "n4" [label="n4\lL12: on syn_flood as f\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "n5" [label="n5\lL13: var mitigados: int = 0;\l", shape=box];
+    "n6" [label="n6\lL14: if (f.pps > limiar)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "n7" [label="n7\lL15: for src in f.sources\l", shape=hexagon, style=filled, fillcolor="#dcfce7"];
+    "n8" [label="n8\lL16: if (not (src in whitelist))\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "n9" [label="n9\lL17: rate_limit(src, 100);\l", shape=box];
+    "n10" [label="n10\lL18: mitigados = mitigados + 1;\l", shape=box];
+    "n11" [label="n11\lL21: log(\"SYN flood: \" + str(mitigados) + \" origens limitadas\");\l", shape=box];
+    "n12" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  "n0" -> "n1" [];
+  "n1" -> "n2" [];
+  "n2" -> "n3" [];
+  "n3" -> "n4" [label="on syn_flood", style=dashed, color="#6b7280"];
+  "n4" -> "n5" [];
+  "n5" -> "n6" [];
+  "n6" -> "n7" [label="verdadeiro", color="#15803d"];
+  "n6" -> "n12" [label="falso", color="#b91c1c"];
+  "n7" -> "n8" [label="iterar", color="#15803d"];
+  "n7" -> "n11" [label="sair", color="#b91c1c"];
+  "n8" -> "n9" [label="verdadeiro", color="#15803d"];
+  "n8" -> "n7" [label="falso", color="#b91c1c"];
+  "n9" -> "n10" [];
+  "n10" -> "n7" [];
+  "n11" -> "n12" [];
+  "n12" -> "n3" [style=dashed, color="#6b7280", constraint=false];
+}

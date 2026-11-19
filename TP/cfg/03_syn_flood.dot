@@ -1,0 +1,33 @@
+digraph "dos_mitigation" {
+  rankdir=TB; nodesep=0.4;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+  "B0" [label="ativação de dos_mitigation", shape=oval, style="filled,bold", fillcolor="#dbeafe"];
+  "B1" [label="B1\lL9: var limiar: int = 5000;\lL10: var whitelist: list<ip> = [10.0.9.10, 10.0.9.11];\l", shape=box];
+  "B2" [label="aguardar evento", shape=oval, style="filled,bold", fillcolor="#fef3c7"];
+  subgraph cluster_0 {
+    label="on syn_flood"; style="rounded,dashed"; color="#9ca3af";
+    "B3" [label="B3\lL12: on syn_flood as f\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "B4" [label="B4\lL13: var mitigados: int = 0;\l", shape=box];
+    "B5" [label="B5\lL14: if (f.pps > limiar)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B6" [label="B6\lL15: for src in f.sources\l", shape=hexagon, style=filled, fillcolor="#dcfce7"];
+    "B7" [label="B7\lL16: if (not (src in whitelist))\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B8" [label="B8\lL17: rate_limit(src, 100);\lL18: mitigados = mitigados + 1;\l", shape=box];
+    "B9" [label="B9\lL21: log(\"SYN flood: \" + str(mitigados) + \" origens limitadas\");\l", shape=box];
+    "B10" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  "B0" -> "B1" [];
+  "B1" -> "B2" [];
+  "B2" -> "B3" [label="on syn_flood", style=dashed, color="#6b7280"];
+  "B3" -> "B4" [];
+  "B4" -> "B5" [];
+  "B5" -> "B6" [label="verdadeiro", color="#15803d"];
+  "B5" -> "B10" [label="falso", color="#b91c1c"];
+  "B6" -> "B7" [label="iterar", color="#15803d"];
+  "B6" -> "B9" [label="sair", color="#b91c1c"];
+  "B7" -> "B8" [label="verdadeiro", color="#15803d"];
+  "B7" -> "B6" [label="falso", color="#b91c1c"];
+  "B8" -> "B6" [];
+  "B9" -> "B10" [];
+  "B10" -> "B2" [style=dashed, color="#6b7280", constraint=false];
+}

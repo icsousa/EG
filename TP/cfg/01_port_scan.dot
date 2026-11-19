@@ -1,0 +1,25 @@
+digraph "scan_response" {
+  rankdir=TB; nodesep=0.4;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+  "B0" [label="ativação de scan_response", shape=oval, style="filled,bold", fillcolor="#dbeafe"];
+  "B1" [label="B1\lL8: var portas_sensiveis: list<int> = [22, 3389, 5432];\l", shape=box];
+  "B2" [label="aguardar evento", shape=oval, style="filled,bold", fillcolor="#fef3c7"];
+  subgraph cluster_0 {
+    label="on port_scan"; style="rounded,dashed"; color="#9ca3af";
+    "B3" [label="B3\lL10: on port_scan as s\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "B4" [label="B4\lL11: if (s.dest_port in portas_sensiveis)\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B5" [label="B5\lL12: block_ip(s.src_ip, 1h);\lL13: log(\"Scan bloqueado: \" + str(s.src_ip));\l", shape=box, color="#dc2626", fontcolor="#dc2626"];
+    "B7" [label="B7\lL15: log(\"Scan ignorado na porta \" + str(s.dest_port));\l", shape=box];
+    "B6" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  "B0" -> "B1" [];
+  "B1" -> "B2" [];
+  "B2" -> "B3" [label="on port_scan", style=dashed, color="#6b7280"];
+  "B3" -> "B4" [];
+  "B4" -> "B5" [label="verdadeiro", color="#15803d"];
+  "B4" -> "B7" [label="falso", color="#b91c1c"];
+  "B5" -> "B6" [];
+  "B7" -> "B6" [];
+  "B6" -> "B2" [style=dashed, color="#6b7280", constraint=false];
+}

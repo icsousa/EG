@@ -1,0 +1,25 @@
+digraph "brute_force_ssh" {
+  rankdir=TB; nodesep=0.4;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+  "B0" [label="ativação de brute_force_ssh", shape=oval, style="filled,bold", fillcolor="#dbeafe"];
+  "B1" [label="B1\lL8: var limite: int = 5;\lL9: var rede_interna: cidr = 10.0.0.0/8;\l", shape=box];
+  "B2" [label="aguardar evento", shape=oval, style="filled,bold", fillcolor="#fef3c7"];
+  subgraph cluster_0 {
+    label="on ssh_failed_login"; style="rounded,dashed"; color="#9ca3af";
+    "B3" [label="B3\lL11: on ssh_failed_login as a\l", shape=box, style="rounded,filled,bold", fillcolor="#e0e7ff"];
+    "B4" [label="B4\lL12: var tentativas: int = count(a.src_ip, 10m);\l", shape=box];
+    "B5" [label="B5\lL13: if (tentativas > limite and not (a.src_ip in rede_interna))\l", shape=diamond, style=filled, fillcolor="#fef9c3"];
+    "B6" [label="B6\lL14: block_ip(a.src_ip, 24h);\lL15: notify(\"Brute force contra \" + a.user + \" vindo de \" + str(a.src_ip));\l", shape=box, color="#dc2626", fontcolor="#dc2626"];
+    "B7" [label="fim", shape=oval, style=filled, fillcolor="#f3f4f6"];
+  }
+  "B0" -> "B1" [];
+  "B1" -> "B2" [];
+  "B2" -> "B3" [label="on ssh_failed_login", style=dashed, color="#6b7280"];
+  "B3" -> "B4" [];
+  "B4" -> "B5" [];
+  "B5" -> "B6" [label="verdadeiro", color="#15803d"];
+  "B5" -> "B7" [label="falso", color="#b91c1c"];
+  "B6" -> "B7" [];
+  "B7" -> "B2" [style=dashed, color="#6b7280", constraint=false];
+}

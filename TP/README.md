@@ -1,6 +1,6 @@
 # Sentinela: uma linguagem para playbooks de resposta a incidentes de segurança e de rede
 
-**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**
+**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering · Parte II: Language Representation, Analysis and Tool Integration**
 *Mestrado em Engenharia Informática, Universidade do Minho*
 
 | Grupo 7 | |
@@ -21,6 +21,7 @@ A linguagem está definida em [`sentinela.ag`](sentinela.ag): a gramática, os a
 | **3** | **[Especificação semântica](#semantica)**<br>[Declaração dos atributos](#atributos) · [O que as declarações dizem](#leitura) · [Gramática anotada](#anotada) · [Propriedades verificadas](#propriedades) · [Implementação em LarkAG](#larkag) | [`GRAMATICA.md`](GRAMATICA.md) · [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md) |
 | **4** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`QUALIDADE.md`](QUALIDADE.md) · [`metricas.py`](metricas.py) |
 | **5** | **[Repositório e execução](#repositorio)** | [`sentinela.py`](sentinela.py) · [`testes/`](testes/) |
+| **6** | **[Representações intermédias: CFG](#ir)** (Parte II, tarefa 1) | [`IR.md`](IR.md) · [`cfg.py`](cfg.py) · [`cfg/`](cfg/) |
 
 ---
 
@@ -410,6 +411,9 @@ Avaliação completa, segundo o NB07, em [`QUALIDADE.md`](QUALIDADE.md). As mét
 | [`CATALOGO_ERROS.md`](CATALOGO_ERROS.md) | modelo de execução, regras de tipos e catálogo de todos os erros e avisos |
 | [`QUALIDADE.md`](QUALIDADE.md) | avaliação de qualidade (tarefa 4) |
 | [`metricas.py`](metricas.py) | métricas de qualidade da GIC e da GA |
+| [`cfg.py`](cfg.py) | construção e desenho do grafo de fluxo de controlo |
+| [`IR.md`](IR.md) | representações intermédias: modelo do CFG, construção, exemplos e limitações |
+| [`cfg/`](cfg/) | CFG dos casos práticos (`.dot` e `.svg`) |
 | [`exemplos/`](exemplos/) | os 4 casos práticos (ativos, sem avisos) |
 | [`testes/`](testes/) | um programa por código de erro ou aviso, com `# expect: CÓDIGO` na linha do problema |
 | `test_*.py` | testes automáticos (`pytest`) |
@@ -422,7 +426,38 @@ python sentinela.py exemplos/*.snt               # verificar os casos práticos
 python sentinela.py testes/*.snt                 # ver cada erro e aviso
 python sentinela.py --arvore exemplos/01_port_scan.snt   # com a árvore sintática
 python metricas.py                               # métricas de qualidade
+python cfg.py exemplos/*.snt                     # CFG dos casos práticos em cfg/ (.dot e .svg)
 pytest -q                                        # testes automáticos
+```
+
+[↑ Voltar ao índice](#indice)
+
+---
+
+<a id="ir"></a>
+## 6. Representações Intermédias: CFG (Parte II, tarefa 1)
+
+Detalhe completo em [`IR.md`](IR.md). [`cfg.py`](cfg.py) constrói o **grafo de fluxo de controlo** de um playbook **válido** a partir da árvore que a GA validou, sem alterar a gramática da Parte I.
+
+Um playbook é um serviço, por isso o CFG não é só o corpo de cada handler:
+
+| Construção | No CFG |
+|---|---|
+| ativação | nó *início* e um bloco com as declarações do estado, executado uma vez |
+| espera por eventos | nó *despacho*, com uma aresta `on X` ou `every T` para a entrada de cada handler |
+| fim de um handler | nó *fim*, que volta ao despacho: é por aqui que o **estado persiste** entre execuções |
+| `if` / `else` | decisão com arestas `verdadeiro` / `falso` |
+| `for` | ciclo com arestas `iterar` / `sair` e aresta de volta do fim do corpo |
+| instruções simples | agrupadas em **blocos básicos** |
+
+Cada instrução guarda o texto, a linha, as variáveis que **define** e que **lê** (base para a análise de fluxo de dados) e, nas ações, se é **destrutiva** (a vermelho no desenho).
+
+![CFG de 04_arp_spoofing](cfg/04_arp_spoofing.svg)
+
+```bash
+python cfg.py exemplos/*.snt                          # cfg/<nome>.dot e .svg
+python cfg.py --instrucoes exemplos/03_syn_flood.snt  # uma instrução por nó
+python cfg.py --texto exemplos/04_arp_spoofing.snt    # blocos, defs e uses no terminal
 ```
 
 [↑ Voltar ao índice](#indice)
