@@ -1,0 +1,22 @@
+digraph "dfg_brute_force_ssh" {
+  rankdir=TB; nodesep=0.3;
+  node [fontname="Helvetica", fontsize=10, shape=box, style=rounded];
+  edge [fontname="Helvetica", fontsize=9];
+  "n1" [label="L8: var limite: int = 5;"];
+  "n2" [label="L9: var rede_interna: cidr = 10.0.0.0/8;"];
+  subgraph cluster_0 {
+    label="on ssh_failed_login"; style="rounded,dashed"; color="#9ca3af";
+    "n4" [label="L11: on ssh_failed_login as a"];
+    "n5" [label="L12: var tentativas: int = count(a.src_ip, 10m);"];
+    "n6" [label="L13: if (tentativas > limite and not (a.src_ip in rede_interna))"];
+    "n7" [label="L14: block_ip(a.src_ip, 24h);"];
+    "n8" [label="L15: notify(\"Brute force contra \" + a.user + \" vindo de \" + str(a.src_ip));"];
+  }
+  "n1" -> "n6" [label="limite", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n2" -> "n6" [label="rede_interna", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n4" -> "n5" [label="a"];
+  "n4" -> "n6" [label="a"];
+  "n4" -> "n7" [label="a"];
+  "n4" -> "n8" [label="a"];
+  "n5" -> "n6" [label="tentativas"];
+}

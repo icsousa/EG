@@ -1,0 +1,26 @@
+# Sem achados: o IP é validado nos dois caminhos e o estado é lido antes de ser reposto.
+alert ataque {
+  src: ip;
+  urgente: bool;
+}
+
+playbook p {
+  var rede_interna: cidr = 10.0.0.0/8;
+  var protegidos: list<ip> = [10.0.0.1, 10.0.0.2];
+  var bloqueados: int = 0;
+  on ataque as a {
+    var alvo: ip = a.src;
+    if (a.urgente and not (alvo in protegidos)) {
+      block_ip(alvo, 1h);
+      bloqueados = bloqueados + 1;
+    } else {
+      if (not (alvo in rede_interna)) {
+        block_ip(alvo, 10m);
+      }
+    }
+  }
+  every 1h {
+    log("bloqueados: " + str(bloqueados));
+    bloqueados = 0;
+  }
+}

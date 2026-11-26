@@ -1,0 +1,19 @@
+# D01 entre execuções: 'ultimo' é escrito no on e reposto no every sem nunca ser lido entretanto.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var ultimo: int = 0;                      # expect: D01
+  var total: int = 0;
+  on scan as s {
+    ultimo = s.port;                        # expect: D01
+    total = total + 1;
+  }
+  every 1h {
+    log("total: " + str(total));
+    ultimo = 0;
+    log("ultimo: " + str(ultimo));
+  }
+}

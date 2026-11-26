@@ -1,0 +1,28 @@
+digraph "dfg_dos_mitigation" {
+  rankdir=TB; nodesep=0.3;
+  node [fontname="Helvetica", fontsize=10, shape=box, style=rounded];
+  edge [fontname="Helvetica", fontsize=9];
+  "n1" [label="L9: var limiar: int = 5000;"];
+  "n2" [label="L10: var whitelist: list<ip> = [10.0.9.10, 10.0.9.11];"];
+  subgraph cluster_0 {
+    label="on syn_flood"; style="rounded,dashed"; color="#9ca3af";
+    "n4" [label="L12: on syn_flood as f"];
+    "n5" [label="L13: var mitigados: int = 0;"];
+    "n6" [label="L14: if (f.pps > limiar)"];
+    "n7" [label="L15: for src in f.sources"];
+    "n8" [label="L16: if (not (src in whitelist))"];
+    "n9" [label="L17: rate_limit(src, 100);"];
+    "n10" [label="L18: mitigados = mitigados + 1;"];
+    "n11" [label="L21: log(\"SYN flood: \" + str(mitigados) + \" origens limitadas\");"];
+  }
+  "n1" -> "n6" [label="limiar", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n2" -> "n8" [label="whitelist", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n4" -> "n6" [label="f"];
+  "n4" -> "n7" [label="f"];
+  "n5" -> "n10" [label="mitigados"];
+  "n5" -> "n11" [label="mitigados"];
+  "n7" -> "n8" [label="src"];
+  "n7" -> "n9" [label="src"];
+  "n10" -> "n10" [label="mitigados"];
+  "n10" -> "n11" [label="mitigados"];
+}

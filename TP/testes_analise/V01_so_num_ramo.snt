@@ -1,0 +1,14 @@
+# V01: o IP só é validado num dos caminhos (or): se 'urgente' for verdade, a rede não é testada.
+alert ataque {
+  src: ip;
+  urgente: bool;
+}
+
+playbook p {
+  var rede_interna: cidr = 10.0.0.0/8;
+  on ataque as a {
+    if (a.urgente or not (a.src in rede_interna)) {
+      quarantine(a.src);                    # expect: V01
+    }
+  }
+}

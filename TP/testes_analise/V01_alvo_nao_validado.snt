@@ -1,0 +1,14 @@
+# V01: o IP bloqueado é o de origem, mas a condição só testa a porta.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var portas: list<int> = [22, 3389];
+  on scan as s {
+    if (s.port in portas) {
+      block_ip(s.src, 1h);                  # expect: V01
+    }
+  }
+}

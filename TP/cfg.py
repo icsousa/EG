@@ -54,6 +54,12 @@ class Instrucao:
     defs: set[str] = field(default_factory=set)
     uses: set[str] = field(default_factory=set)
     acao: str | None = None   # nome da ação ou função chamada (tipo "acao")
+    # Para as análises (ANALISE.md): a árvore da expressão (valor, condição ou
+    # lista do for), os argumentos de uma ação e os nomes visíveis neste ponto
+    # (nome no código → nome único, ver ConstrutorCFG._declarar).
+    expr: Tree | None = field(default=None, repr=False)
+    args: list = field(default_factory=list, repr=False)
+    nomes: dict = field(default_factory=dict, repr=False)
 
     @property
     def destrutiva(self):
@@ -115,6 +121,26 @@ class ConstrutorCFG:
         self.g = nx.MultiDiGraph()
         self.contador = 0
         self.handler = None               # handler a que pertencem os nós novos
+        self.escopos = [{}]               # nome no código → nome único, por scope
+        self.estado = set()               # nomes únicos das variáveis do playbook
+
+    # -- scopes: cada variável fica com um nome único. É o próprio nome, exceto
+    #    quando esconde outra de um scope exterior (W03): então é `nome@L<linha>`.
+    #    Assim, defs/uses de variáveis diferentes com o mesmo nome não se misturam.
+    def _visiveis(self):
+        nomes = {}
+        for escopo in self.escopos:
+            nomes.update(escopo)
+        return nomes
+
+    def _declarar(self, nome, linha):
+        unico = f"{nome}@L{linha}" if nome in self._visiveis() else nome
+        self.escopos[-1][nome] = unico
+        return unico
+
+    def _resolver(self, nomes):
+        visiveis = self._visiveis()
+        return {visiveis.get(n, n) for n in nomes}
 
     # -- utilitários
     def _fonte(self, arvore):
@@ -124,6 +150,8 @@ class ConstrutorCFG:
     def _no(self, tipo, instrucao=None, rotulo=""):
         nid = f"n{self.contador}"
         self.contador += 1
+        if instrucao is not None and not instrucao.nomes:
+            instrucao.nomes = self._visiveis()
         self.g.add_node(nid, tipo=tipo, rotulo=rotulo, handler=self.handler,
                         instrs=[instrucao] if instrucao else [])
         return nid
@@ -146,11 +174,14 @@ class ConstrutorCFG:
         inicio = self._no("inicio", rotulo=f"ativação de {nome}")
         pendentes = [(inicio, "")]
         for decl in _lista(statedecls, "statedecls"):
-            pendentes = self._simples(self.declaracao(decl), pendentes)
+            instr = self.declaracao(decl)
+            self.estado |= instr.defs
+            pendentes = self._simples(instr, pendentes)
 
         despacho = self._no("despacho", rotulo="aguardar evento")
         self._ligar(pendentes, despacho)
-        self.g.graph.update(playbook=nome, inicio=inicio, despacho=despacho, handlers={})
+        self.g.graph.update(playbook=nome, inicio=inicio, despacho=despacho, handlers={},
+                            estado=self.estado)
 
         for h in _lista(handlers, "handlers"):
             self.handler_(h, despacho)
@@ -163,11 +194,13 @@ class ConstrutorCFG:
             alerta, alias, bloco = _filhos(arvore)
             alerta, alias = str(_tokens(alerta)[0]), str(_tokens(alias)[0])
             evento = f"on {alerta}"
-            instr = Instrucao("entrada", f"on {alerta} as {alias}",
-                              arvore.meta.line, defs={alias})
+            self.escopos.append({})                         # scope do handler: o alias
+            instr = Instrucao("entrada", f"on {alerta} as {alias}", arvore.meta.line,
+                              defs={self._declarar(alias, arvore.meta.line)})
         else:                                               # P16: every T { … }
             duracao, bloco = str(_tokens(arvore)[0]), _filhos(arvore)[0]
             evento = f"every {duracao}"
+            self.escopos.append({})
             instr = Instrucao("entrada", evento, arvore.meta.line)
 
         self.handler = evento
@@ -178,19 +211,24 @@ class ConstrutorCFG:
         self._ligar(pendentes, saida)
         self.g.add_edge(saida, despacho, rotulo="", servico=True)
         self.g.graph["handlers"][evento] = (entrada, saida)
+        self.escopos.pop()
 
     # -- instruções
     def bloco(self, arvore, pendentes):                     # P18: block → { stmts }
+        self.escopos.append({})
         for stmt in _lista(_filhos(arvore)[0], "stmts"):
             pendentes = self.instrucao(stmt, pendentes)
+        self.escopos.pop()
         return pendentes
 
     def declaracao(self, arvore):                           # P21/P22: var / secret
         nome = str(_tokens(arvore)[0])
         expr = _filhos(arvore)[1]
         tipo = "var" if _regra(arvore)[1] == 0 else "secret"
+        uses, nomes = self._resolver(_usos(expr)), self._visiveis()   # o valor lê-se antes
+        unico = self._declarar(nome, arvore.meta.line)                # de a variável existir
         return Instrucao(tipo, self._fonte(arvore), arvore.meta.line,
-                         defs={nome}, uses=_usos(expr))
+                         defs={unico}, uses=uses, expr=expr, nomes=nomes)
 
     def instrucao(self, arvore, pendentes):
         _, alt = _regra(arvore)
@@ -203,12 +241,14 @@ class ConstrutorCFG:
             nome = str(_tokens(arvore)[0])
             expr = _filhos(arvore)[0]
             return self._simples(Instrucao("atrib", self._fonte(arvore), linha,
-                                           defs={nome}, uses=_usos(expr)), pendentes)
+                                           defs=self._resolver({nome}),
+                                           uses=self._resolver(_usos(expr)), expr=expr),
+                                 pendentes)
 
         if alt in (2, 3):                                   # P25/P26: if / if-else
             expr, *blocos = _filhos(arvore)
             cond = self._no("cond", Instrucao("if", f"if ({self._fonte(expr)})", linha,
-                                              uses=_usos(expr)))
+                                              uses=self._resolver(_usos(expr)), expr=expr))
             self._ligar(pendentes, cond)
             saidas = self.bloco(blocos[0], [(cond, "verdadeiro")])
             if len(blocos) == 2:
@@ -220,10 +260,16 @@ class ConstrutorCFG:
         if alt == 4:                                        # P27: for x in lista { … }
             var = str(_tokens(arvore)[0])
             expr, bloco = _filhos(arvore)
-            ciclo = self._no("ciclo", Instrucao("for", f"for {var} in {self._fonte(expr)}",
-                                                linha, defs={var}, uses=_usos(expr)))
+            uses, nomes = self._resolver(_usos(expr)), self._visiveis()
+            self.escopos.append({})                         # scope da variável do for
+            instr = Instrucao("for", f"for {var} in {self._fonte(expr)}", linha,
+                              defs={self._declarar(var, linha)}, uses=uses, expr=expr,
+                              nomes=nomes)
+            instr.nomes = {**nomes, var: next(iter(instr.defs))}
+            ciclo = self._no("ciclo", instr)
             self._ligar(pendentes, ciclo)
             fim_corpo = self.bloco(bloco, [(ciclo, "iterar")])
+            self.escopos.pop()
             self._ligar(fim_corpo, ciclo)                   # aresta de volta
             return [(ciclo, "sair")]
 
@@ -231,8 +277,10 @@ class ConstrutorCFG:
         callee = _filhos(arvore)[0]
         args = _filhos(arvore)[1] if alt == 5 else None
         return self._simples(Instrucao("acao", self._fonte(arvore), linha,
-                                       uses=_usos(args) if args else set(),
-                                       acao=str(_tokens(callee)[0])), pendentes)
+                                       uses=self._resolver(_usos(args)) if args else set(),
+                                       acao=str(_tokens(callee)[0]),
+                                       args=_lista(args, "args") if args else []),
+                             pendentes)
 
 
 def construir_cfg(texto):

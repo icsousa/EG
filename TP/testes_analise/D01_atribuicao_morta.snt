@@ -1,0 +1,18 @@
+# D01: o valor inicial de 'msg' é sempre substituído nos dois ramos antes de ser lido.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  var portas: list<int> = [22, 3389];
+  on scan as s {
+    var msg: string = "scan";               # expect: D01
+    if (s.port in portas) {
+      msg = "scan a porta sensível " + str(s.port);
+    } else {
+      msg = "scan a porta " + str(s.port);
+    }
+    log(msg);
+  }
+}

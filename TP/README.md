@@ -22,6 +22,7 @@ A linguagem está definida em [`sentinela.ag`](sentinela.ag): a gramática, os a
 | **4** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`QUALIDADE.md`](QUALIDADE.md) · [`metricas.py`](metricas.py) |
 | **5** | **[Repositório e execução](#repositorio)** | [`sentinela.py`](sentinela.py) · [`testes/`](testes/) |
 | **6** | **[Representações intermédias: CFG](#ir)** (Parte II, tarefa 1) | [`IR.md`](IR.md) · [`cfg.py`](cfg.py) · [`cfg/`](cfg/) |
+| **7** | **[Análise estática](#analise)** (Parte II, tarefa 2) | [`ANALISE.md`](ANALISE.md) · [`analise.py`](analise.py) · [`dfg/`](dfg/) · [`testes_analise/`](testes_analise/) |
 
 ---
 
@@ -414,6 +415,10 @@ Avaliação completa, segundo o NB07, em [`QUALIDADE.md`](QUALIDADE.md). As mét
 | [`cfg.py`](cfg.py) | construção e desenho do grafo de fluxo de controlo |
 | [`IR.md`](IR.md) | representações intermédias: modelo do CFG, construção, exemplos e limitações |
 | [`cfg/`](cfg/) | CFG dos casos práticos (`.dot` e `.svg`) |
+| [`analise.py`](analise.py) | análise estática sobre o CFG: definições que chegam (DFG), intervalos e validação de alvos |
+| [`ANALISE.md`](ANALISE.md) | análise estática: objetivo, abordagem, resultados e limitações |
+| [`dfg/`](dfg/) | grafos de dependências de dados dos casos práticos (`.dot` e `.svg`) |
+| [`testes_analise/`](testes_analise/) | um programa por achado da análise, com `# expect: CÓDIGO` |
 | [`exemplos/`](exemplos/) | os 4 casos práticos (ativos, sem avisos) |
 | [`testes/`](testes/) | um programa por código de erro ou aviso, com `# expect: CÓDIGO` na linha do problema |
 | `test_*.py` | testes automáticos (`pytest`) |
@@ -427,6 +432,7 @@ python sentinela.py testes/*.snt                 # ver cada erro e aviso
 python sentinela.py --arvore exemplos/01_port_scan.snt   # com a árvore sintática
 python metricas.py                               # métricas de qualidade
 python cfg.py exemplos/*.snt                     # CFG dos casos práticos em cfg/ (.dot e .svg)
+python analise.py exemplos/*.snt                 # análise estática (--detalhe, --dfg)
 pytest -q                                        # testes automáticos
 ```
 
@@ -458,6 +464,31 @@ Cada instrução guarda o texto, a linha, as variáveis que **define** e que **l
 python cfg.py exemplos/*.snt                          # cfg/<nome>.dot e .svg
 python cfg.py --instrucoes exemplos/03_syn_flood.snt  # uma instrução por nó
 python cfg.py --texto exemplos/04_arp_spoofing.snt    # blocos, defs e uses no terminal
+```
+
+[↑ Voltar ao índice](#indice)
+
+---
+
+<a id="analise"></a>
+## 7. Análise Estática (Parte II, tarefa 2)
+
+Detalhe completo em [`ANALISE.md`](ANALISE.md). [`analise.py`](analise.py) tem um **motor de fluxo de dados** (ponto fixo com lista de trabalho, junção, alargamento e estreitamento) que corre sobre o CFG da tarefa 1, **incluindo as arestas de serviço**: o estado persiste entre execuções, por isso o que um handler escreve chega aos outros. Como no notebook 8, o domínio está separado do motor; há três domínios:
+
+| Análise | Domínio | Achado |
+|---|---|---|
+| definições que chegam → **DFG** | conjuntos de `(variável, definição)`, *may* | **D01** valor escrito que nunca é lido |
+| **intervalos** (interpretação abstrata) | `[lo, hi]` para `int`/`duration`, `{true, false}` para `bool`; refinamento nos ramos; alargamento com limiares | **I01** / **I02** condição sempre verdadeira / sempre falsa |
+| **validação de alvos** (do domínio) | `confiável ⊑ validado ⊑ não validado`, *must* | **V01** `block_ip`/`quarantine` sobre um IP do alerta nunca comparado com uma lista ou rede de confiança |
+
+A terceira responde a um risco real: o IP de um alerta é controlado por quem ataca (pode ser falsificado), e bloqueá-lo sem o comparar com uma referência de confiança deixa o atacante fazer a defesa bloquear a própria rede. Nos casos práticos, encontrou um problema que a GA não via: em `01_port_scan` o `if` testa a **porta** mas a ação bloqueia o **IP**.
+
+![DFG de 04_arp_spoofing](dfg/04_arp_spoofing.svg)
+
+```bash
+python analise.py exemplos/*.snt                          # achados
+python analise.py --detalhe exemplos/04_arp_spoofing.snt  # estado abstrato em cada instrução
+python analise.py --dfg exemplos/*.snt                    # dfg/<nome>.dot e .svg
 ```
 
 [↑ Voltar ao índice](#indice)

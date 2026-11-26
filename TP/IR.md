@@ -46,6 +46,8 @@ Cada nó guarda uma lista de `Instrucao` com:
 
 Em `a.src_ip` a instrução lê a variável `a`; o nome do campo não conta como uso.
 
+Para a análise estática (tarefa 2, [`ANALISE.md`](ANALISE.md)), cada instrução guarda também a árvore da expressão, os argumentos das ações e os nomes visíveis, e o construtor resolve os scopes: uma variável que esconde outra (W03) aparece nos `defs`/`uses` como `nome@L<linha>`.
+
 ## 4. Exemplos
 
 | Playbook | Blocos | Arestas | O que se vê |

@@ -1,0 +1,16 @@
+# I01: count devolve sempre um valor >= 0, por isso o else nunca corre.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook p {
+  on scan as s {
+    var n: int = count(s.src, 5m);
+    if (n >= 0) {                           # expect: I01
+      log("scan de " + str(s.src));
+    } else {
+      log("nunca acontece");
+    }
+  }
+}

@@ -1,0 +1,21 @@
+# V01 entre handlers: o IP guardado no estado vem do alerta e é bloqueado no every sem validação.
+alert login_falhado {
+  src_ip: ip;
+}
+
+playbook p {
+  var suspeito: ip = 0.0.0.0;
+  var incidentes: int = 0;
+  on login_falhado as a {
+    if (count(a.src_ip, 10m) > 20) {
+      suspeito = a.src_ip;
+      incidentes = incidentes + 1;
+    }
+  }
+  every 1h {
+    if (incidentes > 0) {
+      block_ip(suspeito, 1h);               # expect: V01
+      incidentes = 0;
+    }
+  }
+}

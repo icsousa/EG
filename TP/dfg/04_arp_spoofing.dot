@@ -1,0 +1,52 @@
+digraph "dfg_lan_integrity" {
+  rankdir=TB; nodesep=0.3;
+  node [fontname="Helvetica", fontsize=10, shape=box, style=rounded];
+  edge [fontname="Helvetica", fontsize=9];
+  "n1" [label="L9: secret webhook_token: string = \"xoxb-123\";"];
+  "n2" [label="L10: var lan: cidr = 10.0.2.0/24;"];
+  "n3" [label="L11: var servidores: list<ip> = [10.0.1.10, 10.0.1.20];"];
+  "n4" [label="L12: var incidentes: int = 0;"];
+  subgraph cluster_0 {
+    label="on arp_spoof"; style="rounded,dashed"; color="#9ca3af";
+    "n6" [label="L14: on arp_spoof as x"];
+    "n7" [label="L15: var critico: bool = x.claimed_ip == x.gateway_ip;"];
+    "n8" [label="L16: for srv in servidores"];
+    "n9" [label="L17: if (x.claimed_ip == srv)"];
+    "n10" [label="L18: critico = true;"];
+    "n11" [label="L21: if (critico and x.attacker_ip in lan)"];
+    "n12" [label="L22: quarantine(x.attacker_ip);"];
+    "n13" [label="L23: block_ip(x.attacker_ip, 1h);"];
+    "n14" [label="L24: incidentes = incidentes + 1;"];
+    "n15" [label="L25: notify(\"ARP spoofing por \" + str(x.attacker_ip), webhook_token);"];
+    "n16" [label="L27: log(\"ARP suspeito, sem impacto: \" + str(x.attacker_ip));"];
+  }
+  subgraph cluster_1 {
+    label="every 1h"; style="rounded,dashed"; color="#9ca3af";
+    "n19" [label="L32: if (incidentes > 0)"];
+    "n20" [label="L33: notify(\"Resumo: \" + str(incidentes) + \" incidentes na última hora\", webhook_token);"];
+    "n21" [label="L34: incidentes = 0;"];
+  }
+  "n1" -> "n15" [label="webhook_token", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n1" -> "n20" [label="webhook_token", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n2" -> "n11" [label="lan", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n3" -> "n8" [label="servidores", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n4" -> "n14" [label="incidentes", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n4" -> "n19" [label="incidentes", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n4" -> "n20" [label="incidentes", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n6" -> "n7" [label="x"];
+  "n6" -> "n9" [label="x"];
+  "n6" -> "n11" [label="x"];
+  "n6" -> "n12" [label="x"];
+  "n6" -> "n13" [label="x"];
+  "n6" -> "n15" [label="x"];
+  "n6" -> "n16" [label="x"];
+  "n7" -> "n11" [label="critico"];
+  "n8" -> "n9" [label="srv"];
+  "n10" -> "n11" [label="critico"];
+  "n14" -> "n14" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+  "n14" -> "n19" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+  "n14" -> "n20" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+  "n21" -> "n14" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+  "n21" -> "n19" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+  "n21" -> "n20" [label="incidentes", style=dashed, color="#2563eb", fontcolor="#2563eb", constraint=false];
+}

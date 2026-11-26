@@ -1,0 +1,19 @@
+digraph "dfg_scan_response" {
+  rankdir=TB; nodesep=0.3;
+  node [fontname="Helvetica", fontsize=10, shape=box, style=rounded];
+  edge [fontname="Helvetica", fontsize=9];
+  "n1" [label="L8: var portas_sensiveis: list<int> = [22, 3389, 5432];"];
+  subgraph cluster_0 {
+    label="on port_scan"; style="rounded,dashed"; color="#9ca3af";
+    "n3" [label="L10: on port_scan as s"];
+    "n4" [label="L11: if (s.dest_port in portas_sensiveis)"];
+    "n5" [label="L12: block_ip(s.src_ip, 1h);"];
+    "n6" [label="L13: log(\"Scan bloqueado: \" + str(s.src_ip));"];
+    "n7" [label="L15: log(\"Scan ignorado na porta \" + str(s.dest_port));"];
+  }
+  "n1" -> "n4" [label="portas_sensiveis", style=dotted, color="#6b7280", fontcolor="#6b7280"];
+  "n3" -> "n4" [label="s"];
+  "n3" -> "n5" [label="s"];
+  "n3" -> "n6" [label="s"];
+  "n3" -> "n7" [label="s"];
+}

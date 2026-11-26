@@ -1,0 +1,20 @@
+# I02: o nível de escalada só vai de 0 a 3 (estado persistente); 'nivel > 3' nunca é verdade.
+alert scan {
+  src: ip;
+  port: int;
+}
+
+playbook escalada {
+  var nivel: int = 0;
+  on scan as s {
+    if (nivel < 3) {
+      nivel = nivel + 1;
+    }
+    if (nivel > 3) {                        # expect: I02
+      notify("nível máximo atingido");
+    }
+  }
+  every 1h {
+    nivel = 0;
+  }
+}
